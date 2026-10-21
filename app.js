@@ -3988,7 +3988,7 @@ len1=val.length;len1>k;k++)item=val[k],childNode={},childNode[key]=item,lastChil
   function snapshot(input) {
     const key=JSON.stringify(input);
     if(snapshots.has(key)) return snapshots.get(key);
-    const item={...input,codigo:'MAX-'+crypto.randomUUID().replaceAll('-','').slice(0,12).toUpperCase(),geradaEm:new Date().toISOString()};
+    const item={...input,codigo:'MAX-'+Array.from(crypto.getRandomValues(new Uint8Array(6)),b=>b.toString(16).padStart(2,'0')).join('').toUpperCase(),geradaEm:new Date().toISOString()};
     snapshots.set(key,item);if(snapshots.size>50)snapshots.delete(snapshots.keys().next().value);
     return item;
   }
@@ -4021,7 +4021,7 @@ len1=val.length;len1>k;k++)item=val[k],childNode={},childNode[key]=item,lastChil
     return `<header class="model-header ${activity?'activity-header':'exam-header'}"><img class="model-header-image" src="${image}" alt="Modelo da escola. Aluno: ${xml(item.aluno.nome)}. Turma: ${xml(item.aluno.turma)}. Disciplina: ${xml(item.disciplina)}. Professor: ${xml(item.professor)}. Data: ${date(item.data)}.">${activity?'':'<span class="model-school sr-only">ESCOLA MÁXIMU’S</span><span class="model-kind sr-only">AVALIAÇÃO</span>'}</header>`;
   }
   function registration(item,image) {
-    return `<section class="model-registration"><div><strong>${xml(item.codigo)}</strong><span>Data da ${item.model==='atividade'?'atividade':'avaliação'}: ${date(item.data)}</span><span>Gerada em ${issued(item.geradaEm)} · Brasília</span></div><img src="${image}" class="real-qr" alt="QR Code com a data e o registro deste documento"></section>`;
+    return `<section class="model-registration qr-${xml(item.qrPosition||'direita')}"><div><strong>${xml(item.codigo)}</strong><span>Data da ${item.model==='atividade'?'atividade':'avaliação'}: ${date(item.data)}</span><span>Gerada em ${issued(item.geradaEm)} · Brasília</span></div><img src="${image}" class="real-qr" alt="QR Code com a data e o registro deste documento"></section>`;
   }
   function adaptContent(html,profile) {
     const box=document.createElement('div');box.innerHTML=html;
@@ -4044,13 +4044,13 @@ len1=val.length;len1>k;k++)item=val[k],childNode={},childNode[key]=item,lastChil
       const bold=document.createElement('strong');bold.textContent=match[2];
       el.insertBefore(document.createTextNode(match[1]),node);el.insertBefore(bold,node);node.textContent=node.textContent.slice(match[0].length);
     });
-    if(profile.upper) {const walker=document.createTreeWalker(box,NodeFilter.SHOW_TEXT);let node;while((node=walker.nextNode()))node.nodeValue=node.nodeValue.toLocaleUpperCase('pt-BR');}
+    if(profile.upper) {const walker=document.createTreeWalker(box,NodeFilter.SHOW_TEXT);let node;while((node=walker.nextNode())){if(!node.parentElement.closest('code,pre,math')&&!/[=<>≤≥]/.test(node.nodeValue))node.nodeValue=node.nodeValue.toLocaleUpperCase('pt-BR');}}
     return box.innerHTML;
   }
   async function paper(item,body) {
     const {image,payload}=qr(item);item.qrImage=image;item.qrPayload=payload;item.body=body;
     const room=item.profile.rules.filter(r=>r.status==='em sala').map(r=>r.title);
-    return `<div class="paper model-paper" data-code="${item.codigo}" style="--exam-font:${item.profile.font}pt;--exam-leading:${item.profile.lineHeight}">${await header(item)}${registration(item,image)}${room.length?`<p class="application-support">Orientação para aplicação: ${xml(room.join('; '))}.</p>`:''}<main class="model-content">${body}</main></div>`;
+    return `<div class="paper model-paper" data-code="${item.codigo}" style="--exam-font:${item.profile.font}pt;--exam-leading:${item.profile.lineHeight}">${await header(item)}${item.documentTitle&&!['AVALIAÇÃO','ATIVIDADE'].includes(item.documentTitle)?`<h2 class="document-title">${xml(item.documentTitle)}</h2>`:''}${registration(item,image)}${room.length?`<p class="application-support">Orientação para aplicação: ${xml(room.join('; '))}.</p>`:''}<main class="model-content">${body}</main></div>`;
   }
   const parseXML=s=>{const doc=new DOMParser().parseFromString(s,'application/xml');if(doc.getElementsByTagName('parsererror').length)throw new Error('Não foi possível abrir o modelo do documento.');return doc;};
   const serialize=doc=>new XMLSerializer().serializeToString(doc);
@@ -4131,6 +4131,7 @@ len1=val.length;len1>k;k++)item=val[k],childNode={},childNode[key]=item,lastChil
         return result+'</w:tbl>';
       }
       const blockTags=['DIV','ARTICLE','SECTION','MAIN','UL','OL','FIGURE','BLOCKQUOTE'];
+      if(node.dataset.newPage==='true'){delete node.dataset.newPage;return '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'+await blocks(node);}
       if(blockTags.includes(node.tagName) && Array.from(node.children).some(c=>['DIV','ARTICLE','SECTION','P','H2','H3','IMG','LI','TABLE','FIGURE'].includes(c.tagName)))return (await Promise.all(Array.from(node.childNodes).map(blocks))).join('');
       if(node.querySelector('img'))return (await Promise.all(Array.from(node.childNodes).map(blocks))).join('');
       const heading=/^H[1-6]$/.test(node.tagName)||node.classList.contains('q-title');
@@ -4141,7 +4142,7 @@ len1=val.length;len1>k;k++)item=val[k],childNode={},childNode[key]=item,lastChil
     // Remova somente parágrafos vazios de paginação. Os desenhos originais ficam intactos.
     Array.from(body.children).filter(el=>el.localName==='p'&&!el.getElementsByTagNameNS(W,'t').length&&!el.getElementsByTagNameNS(W,'drawing').length&&!el.getElementsByTagNameNS(W,'pict').length).forEach(el=>el.remove());
     const meta=paragraph(run(item.codigo,9,true),9,{after:30})+paragraph(run('Data: '+date(item.data),9),9,{after:30})+paragraph(run('Gerada em '+issued(item.geradaEm)+' (Brasília)',9),9,{after:0});
-    let added=`<w:tbl><w:tblPr><w:tblW w:w="10800" w:type="dxa"/></w:tblPr><w:tblGrid><w:gridCol w:w="9300"/><w:gridCol w:w="1500"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w="9300" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>${meta}</w:tc><w:tc><w:tcPr><w:tcW w:w="1500" w:type="dxa"/></w:tcPr>${paragraph(await embedImage(item.qrImage,24),9,{after:0})}</w:tc></w:tr></w:tbl>`;
+    let added=(item.documentTitle&&!['AVALIAÇÃO','ATIVIDADE'].includes(item.documentTitle)?paragraph(run(item.documentTitle,item.profile.font,true),item.profile.font,{center:true}):'')+`<w:tbl><w:tblPr><w:tblW w:w="10800" w:type="dxa"/></w:tblPr><w:tblGrid><w:gridCol w:w="9300"/><w:gridCol w:w="1500"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w="9300" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>${meta}</w:tc><w:tc><w:tcPr><w:tcW w:w="1500" w:type="dxa"/></w:tcPr>${paragraph(await embedImage(item.qrImage,24),9,{after:0})}</w:tc></w:tr></w:tbl>`;
     added+=paragraph('',9,{after:80});
     const room=item.profile.rules.filter(r=>r.status==='em sala').map(r=>r.title);
     if(room.length)added+=paragraph(run('Orientação para aplicação: '+room.join('; ')+'.',item.profile.font),item.profile.font);
@@ -4172,7 +4173,7 @@ len1=val.length;len1>k;k++)item=val[k],childNode={},childNode[key]=item,lastChil
     try{
       while(queue.length){
         if(++iterations>3000)throw new Error('O documento excede o limite de paginação. Divida a avaliação em partes.');
-        const block=queue.shift();main.appendChild(block);
+        const block=queue.shift();if(block.dataset?.newPage==='true'&&main.children.length){page=newPage();main=page.querySelector('.model-content');}main.appendChild(block);
         await Promise.all(Array.from(block.querySelectorAll('img')).map(img=>img.complete?Promise.resolve():new Promise(res=>{img.onload=res;img.onerror=res;})));
         if(!overflow())continue;
         block.remove();
@@ -4375,6 +4376,7 @@ len1=val.length;len1>k;k++)item=val[k],childNode={},childNode[key]=item,lastChil
   let page = location.hash==='#coordenacao'?'admin':'professor';
   const C=window.MaximusCore, D=window.MaximusDocuments;
   let ruleConfigCache=C.defaultRules, lastDocument=null, connectionReady=false, studentRefs=[];
+  let generatedAnswerKey={}, answerKeyContent='', lastAdaptationReport=null, lastBatchReview='';
   db.ref('.info/connected').on('value',snap=>{ connectionReady=snap.val()===true; document.querySelectorAll('[data-sync-state]').forEach(el=>{el.textContent=connectionReady?'Conectado':'Sem conexão'; el.dataset.connected=String(connectionReady);}); });
 
   let currentUser = null;
@@ -4491,7 +4493,7 @@ len1=val.length;len1>k;k++)item=val[k],childNode={},childNode[key]=item,lastChil
     const hidden=$('questoesTexto');
     if(!editor || !hidden) return;
 
-    const syncHidden=()=>{ hidden.value = editor.innerHTML.trim(); };
+    const syncHidden=()=>{ hidden.value = editor.innerHTML.trim(); invalidatePreview(); };
     const focusEditor=()=>{ editor.focus(); };
 
     document.querySelectorAll('.word-toolbar [data-command]').forEach(btn=>{
@@ -4611,18 +4613,18 @@ len1=val.length;len1>k;k++)item=val[k],childNode={},childNode[key]=item,lastChil
   function sanitizePastedHtml(html){
     const temp=document.createElement('div');
     temp.innerHTML=html;
-    temp.querySelectorAll('script,style,iframe,object,embed,link,meta,svg,math,form,input,button,video,audio,template').forEach(el=>el.remove());
+    temp.querySelectorAll('script,style,iframe,object,embed,link,meta,base,title,svg,math,form,input,button,video,audio,template,frame,frameset,applet').forEach(el=>el.remove());
     temp.querySelectorAll('*').forEach(el=>{
       [...el.attributes].forEach(attr=>{
         const name=attr.name.toLowerCase();
-        if(name.startsWith('on')||['srcdoc','formaction','action','contenteditable'].includes(name)) el.removeAttribute(attr.name);
+        if(name.startsWith('on')||['id','name','srcset','srcdoc','formaction','action','contenteditable'].includes(name)) el.removeAttribute(attr.name);
         if(name==='href'&&!/^(https?:|mailto:)/i.test(attr.value))el.removeAttribute('href');
-        if(name==='src' && el.tagName==='IMG' && !/^(data:image\/|https?:\/\/)/i.test(attr.value)) el.removeAttribute(attr.name);
+        if(name==='src' && el.tagName==='IMG' && !/^(data:image\/(?:png|jpeg|jpg|gif|webp);base64,|https?:\/\/)/i.test(attr.value)) el.removeAttribute(attr.name);
         if(name==='style'){
           const safe = attr.value
             .split(';')
             .map(x=>x.trim())
-            .filter(x=>/^(text-align|font-weight|font-style|text-decoration|font-size|width|height|display|margin|max-width|object-fit)\s*:/i.test(x))
+            .filter(x=>/^(text-align|font-weight|font-style|text-decoration|font-size|width|height|display|margin|max-width|object-fit)\s*:/i.test(x)&&!/(?:url|expression|@import|javascript)\s*[:(]/i.test(x))
             .join('; ');
           if(safe) el.setAttribute('style', safe); else el.removeAttribute('style');
         }
@@ -4634,8 +4636,12 @@ len1=val.length;len1>k;k++)item=val[k],childNode={},childNode[key]=item,lastChil
   function setEditorContent(content){
     const editor=$('questoesEditor');
     const hidden=$('questoesTexto');
-    if(editor) editor.innerHTML = content || '';
-    if(hidden) hidden.value = content || '';
+    const safe=sanitizePastedHtml(content||'');
+    if(editor) editor.innerHTML = safe;
+    if(hidden) hidden.value = safe;
+    invalidatePreview();
+    generatedAnswerKey={}; answerKeyContent='';
+    if($('answerKeys'))$('answerKeys').replaceChildren();
   }
 
   function getEditorContent(){
@@ -5147,7 +5153,7 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
 
   async function processarDocumentoImportado(file){
     const status=$('documentImportStatus');
-    status.textContent=`Lendo ${file.name}...`;
+    limparDocumentoImportado();status.textContent=`Lendo ${file.name}...`;
     try{
       if(file.size>20*1024*1024) throw new Error('O arquivo deve ter no máximo 20 MB.');
       const ext=(file.name.split('.').pop()||'').toLowerCase();
@@ -5164,13 +5170,14 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
         window.pdfjsLib.GlobalWorkerOptions.workerSrc=window.MaximusAssets.pdfWorkerURL();
         const pdf=await window.pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
         const pages=[];
+        if(pdf.numPages>100){await pdf.destroy();throw new Error('Use PDFs de até 100 páginas por importação.');}
         for(let i=1;i<=pdf.numPages;i++){ const p=await pdf.getPage(i); const c=await p.getTextContent(); pages.push(c.items.map(x=>x.str).join(' ')); }
-        text=pages.join('\n\n'); html=`<div class="imported-document">${escapeHtml(text).replace(/\n/g,'<br>')}</div>`;
+        text=pages.join('\n\n');await pdf.destroy();if(!text.trim())throw new Error('Este PDF não contém texto selecionável. Use um DOCX ou cole o texto; PDFs digitalizados precisam de OCR.'); html=`<div class="imported-document">${escapeHtml(text).replace(/\n/g,'<br>')}</div>`;
       }else if(['txt','html','htm'].includes(ext)){
         text=await file.text(); html=ext==='txt'?`<div class="imported-document">${escapeHtml(text).replace(/\n/g,'<br>')}</div>`:sanitizePastedHtml(text); if(ext!=='txt') text=editorContentToPlainText(html);
       }else throw new Error('Formato não aceito. Use PDF, DOCX, TXT, HTML ou imagem.');
       documentoImportado={name:file.name,text,html};
-      status.textContent=`Arquivo pronto: ${file.name}${text?` • ${text.length} caracteres extraídos`:''}`;
+      status.textContent=`Arquivo pronto: ${file.name}${text?` • ${text.length} caracteres extraídos`:''}${ext==='pdf'?' · Apenas texto; para preservar imagens, importe DOCX ou envie as imagens separadamente.':''}`;
       $('usarDocumentoNoConteudo')?.classList.toggle('hidden',!text);
       $('usarDocumentoNoEditor')?.classList.remove('hidden');
       $('removerDocumento')?.classList.remove('hidden');
@@ -5198,8 +5205,8 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
   }
 
   function sincronizarTotalMisto(){
-    const objetivas=Math.max(1,Math.min(20,parseInt($('qtdObjetivas')?.value||'3',10)));
-    const discursivas=Math.max(1,Math.min(20,parseInt($('qtdDiscursivas')?.value||'3',10)));
+    const objetivas=Math.max(0,Math.min(25,parseInt($('qtdObjetivas')?.value||'0',10)||0));
+    const discursivas=Math.max(0,Math.min(25,parseInt($('qtdDiscursivas')?.value||'0',10)||0));
     if($('qtdQuestoes')) $('qtdQuestoes').value=Math.min(25,objetivas+discursivas);
   }
 
@@ -5220,7 +5227,7 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
   }
 
   function setupQuestionBank(){
-    $('salvarBancoQuestoes')?.addEventListener('click',salvarNoBancoQuestoes);
+    $('salvarBancoQuestoes')?.addEventListener('click',async()=>{try{await withBusyState($('salvarBancoQuestoes'),'Salvando questões...',salvarNoBancoQuestoes);}catch(e){setMsg('profMsg',firebaseError(e),'error');}});
     $('buscaBancoQuestoes')?.addEventListener('input',renderBancoQuestoes);
     $('filtroBancoDisciplina')?.addEventListener('input',renderBancoQuestoes);
   }
@@ -5277,16 +5284,16 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
 
   function initProfessorWorkspace(){ const turmas=Array.isArray(currentProfile.turmas)?currentProfile.turmas:[]; $('profResumo').textContent=`${currentProfile.nome || currentProfile.email} • ${turmas.length} turma(s) vinculada(s) • tempo real`; const sel=$('profTurmaSelect'); const old=sel.value; sel.innerHTML=turmas.length?turmas.map(t=>`<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join(''):'<option value="">Nenhuma turma vinculada</option>'; if(old && turmas.includes(old)) sel.value=old; if($('dataDocumento') && !$('dataDocumento').value) $('dataDocumento').value=today(); renderAlunosProfessor(); }
   function renderAlunosProfessor(){ const turma=$('profTurmaSelect')?.value; const alunos=alunosCache.filter(a=>C.classKey(a.turma)===C.classKey(turma)).sort((a,b)=>norm(a.nome).localeCompare(norm(b.nome),'pt-BR')); const old=$('profAlunoSelect')?.value; $('profAlunoSelect').innerHTML=alunos.length?alunos.map(a=>`<option value="${a.id}">${escapeHtml(a.nome)}</option>`).join(''):'<option value="">Nenhum aluno nesta turma</option>'; if(old && alunos.some(a=>a.id===old)) $('profAlunoSelect').value=old; updateAlunoSelecionado(); }
-  function updateAlunoSelecionado(){ alunoSelecionado=alunosCache.find(a=>a.id===$('profAlunoSelect')?.value)||null; const box=$('alunoInfo'); if(!alunoSelecionado){ box.innerHTML='<p class="muted">Selecione um aluno.</p>'; renderSugestoesPedagogicas(null); return; } $('complementoProfessor').value=alunoSelecionado.complementoProfessor||''; const rules=detectAdaptations(alunoSelecionado); box.innerHTML=`<p><strong>Aluno:</strong> ${escapeHtml(alunoSelecionado.nome)}</p><p><strong>Turma:</strong> ${escapeHtml(alunoSelecionado.turma)} ${alunoSelecionado.numero?`• <strong>Nº:</strong> ${escapeHtml(alunoSelecionado.numero)}`:''}</p><p><strong>Diagnóstico/laudo:</strong> ${escapeHtml(alunoSelecionado.diagnostico||'Não informado')}</p><p><strong>Orientações da planilha:</strong> ${escapeHtml(alunoSelecionado.orientacoes||alunoSelecionado.adaptacao||'Não informado')}</p><p><strong>Adaptações detectadas:</strong> ${escapeHtml(rules.map(r=>r.title).join('; ') || 'Adaptação básica')}</p>`; renderActiveAdaptations(rules); renderSugestoesPedagogicas(alunoSelecionado); }
+  function updateAlunoSelecionado(){ invalidatePreview(); alunoSelecionado=alunosCache.find(a=>a.id===$('profAlunoSelect')?.value)||null; const box=$('alunoInfo'); if(!alunoSelecionado){ $('adaptRulesBox')?.replaceChildren(); box.innerHTML='<p class="muted">Selecione um aluno.</p>'; renderSugestoesPedagogicas(null); return; } $('complementoProfessor').value=alunoSelecionado.complementoProfessor||''; const rules=detectAdaptations(alunoSelecionado); box.innerHTML=`<p><strong>Aluno:</strong> ${escapeHtml(alunoSelecionado.nome)}</p><p><strong>Turma:</strong> ${escapeHtml(alunoSelecionado.turma)} ${alunoSelecionado.numero?`• <strong>Nº:</strong> ${escapeHtml(alunoSelecionado.numero)}`:''}</p><p><strong>Diagnóstico/laudo:</strong> ${escapeHtml(alunoSelecionado.diagnostico||'Não informado')}</p><p><strong>Orientações da planilha:</strong> ${escapeHtml(alunoSelecionado.orientacoes||alunoSelecionado.adaptacao||'Não informado')}</p><p><strong>Adaptações detectadas:</strong> ${escapeHtml(rules.map(r=>r.title).join('; ') || 'Adaptação básica')}</p>`; renderActiveAdaptations(rules); renderSugestoesPedagogicas(alunoSelecionado); }
 
   async function salvarComplementoProfessor(){ if(!alunoSelecionado){ setMsg('profMsg','Selecione um aluno.','error'); return; } try{ await db.ref('alunos/'+alunoSelecionado.id+'/complementoProfessor').set(norm($('complementoProfessor').value)); await audit('salvar_complemento_professor',{alunoId:alunoSelecionado.id}); setMsg('profMsg','Complemento salvo com sucesso.','ok'); }catch(error){ setMsg('profMsg', firebaseError(error),'error'); } }
 
   function profileForAluno(aluno,normal=false){
-    if(normal)return C.resolveRules({},'',ruleConfigCache);
+    if(normal)return window.MaximusPedagogia.resolve({},'',ruleConfigCache);
     const extra=aluno?.id===alunoSelecionado?.id ? $('complementoProfessor')?.value : aluno?.complementoProfessor;
     const mode=document.querySelector('input[name="modoAdaptacao"]:checked')?.value||'auto';
     const manual=mode==='basica'?'Fonte ampliada; espaçamento ampliado':mode==='completa'?'Fonte ampliada; espaçamento ampliado; mais linhas; dica; linguagem simples':'';
-    return C.resolveRules(aluno,[extra,manual].filter(Boolean).join('; '),ruleConfigCache);
+    return window.MaximusPedagogia.resolve(aluno,[extra,manual].filter(Boolean).join('; '),ruleConfigCache);
   }
   function detectAdaptations(aluno){
     return [{id:'nome',title:'Identificação no modelo da escola',what:'Aluno, turma, disciplina, professor e data.'},...profileForAluno(aluno).rules,{id:'qr',title:'QR Code e data',what:'Registro da avaliação e da emissão. Sem diagnóstico no QR Code.'}];
@@ -5337,8 +5344,8 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
     }
 
     const formato=norm($('formatoQuestoes')?.value || 'misto');
-    const qtdObjetivas=formato==='misto'?Math.max(1,Math.min(20,parseInt($('qtdObjetivas')?.value||'3',10))):(formato==='multipla'?Math.max(1,Math.min(25,parseInt($('qtdQuestoes')?.value||'6',10))):0);
-    const qtdDiscursivas=formato==='misto'?Math.max(1,Math.min(20,parseInt($('qtdDiscursivas')?.value||'3',10))):(formato==='discursiva'?Math.max(1,Math.min(25,parseInt($('qtdQuestoes')?.value||'6',10))):0);
+    const qtdObjetivas=formato==='misto'?Math.max(0,Math.min(25,parseInt($('qtdObjetivas')?.value||'0',10)||0)):(formato==='multipla'?Math.max(1,Math.min(25,parseInt($('qtdQuestoes')?.value||'6',10))):0);
+    const qtdDiscursivas=formato==='misto'?Math.max(0,Math.min(25,parseInt($('qtdDiscursivas')?.value||'0',10)||0)):(formato==='discursiva'?Math.max(1,Math.min(25,parseInt($('qtdQuestoes')?.value||'6',10))):0);
     const qtd=Math.max(1,Math.min(25,qtdObjetivas+qtdDiscursivas));
     const disciplina=norm($('disciplina').value)||'disciplina';
     const tema=norm($('temaConteudo').value)||'conteúdo estudado';
@@ -5347,22 +5354,18 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
     const dificuldade=norm($('dificuldade').value)||'Média';
     const modo=getModoAdaptacao(alunoSelecionado);
     const opts={qtd,qtdObjetivas,qtdDiscursivas,disciplina,tema,dificuldade,formato,modo,aluno:alunoSelecionado};
-    let text=gerarQuestoesIA(conteudo,opts);
-    if(needsUpper(alunoSelecionado)) text=text.toUpperCase();
-
-    const htmlBonito = renderGeneratedActivityHtml(text, {
-      disciplina,
-      tema,
-      dificuldade,
-      qtd,
-      modo,
-      aluno:alunoSelecionado,
-      conteudo
-    });
-
+    if(qtdObjetivas+qtdDiscursivas<1)throw new Error('Escolha ao menos uma questão.');
+    if(qtdObjetivas+qtdDiscursivas>25)throw new Error('Use no máximo 25 questões no total.');
+    const questions=window.MaximusPedagogia.generateQuestions(conteudo,opts);
+    const supportMode=$('modoTextoApoio')?.value||'auto',supportText=norm($('textoApoioGeral')?.value);
+    const support=supportMode!=='nenhum'&&supportText?`<div class="support-text"><strong>Texto de apoio</strong><p>${escapeHtml(supportText)}</p></div>`:'';
+    const htmlBonito=questions.map((q,i)=>`<article class="ai-question-card"><div class="ai-question-number">Questão ${i+1}</div><h3>${escapeHtml(q.title)}</h3>${support}${q.body.map(t=>`<p>${escapeHtml(t)}</p>`).join('')}${q.options.length?`<div class="options">${q.options.map(o=>`<p>${escapeHtml(o)}</p>`).join('')}</div>`:`<div class="answer-lines">${'<div></div>'.repeat(q.linhas)}</div>`}</article>`).join('');
     setEditorContent(htmlBonito);
-    const origemBanco=materialBanco?' Também foram considerados exercícios compatíveis do seu banco.':'';
-    setMsg('profMsg',`IA pedagógica local criou ${qtd} questão(ões): ${qtdObjetivas} objetiva(s) e ${qtdDiscursivas} discursiva(s).${origemBanco} Revise antes de aplicar.`,'ok');
+    generatedAnswerKey=Object.fromEntries(questions.map((q,i)=>[i,q.answer]).filter(([,a])=>a!==null));
+    answerKeyContent=getEditorContent();
+    renderAnswerKeys();
+    const origemBanco=materialBanco?' Também foi considerado o material compatível salvo no seu banco.':' Questões criadas a partir do texto fornecido.';
+    setMsg('profMsg',`Gerador local criou ${qtd} questão(ões): ${qtdObjetivas} objetiva(s) e ${qtdDiscursivas} discursiva(s).${origemBanco} Revise antes de aplicar.`,'ok');
     return true;
   }
 
@@ -5370,7 +5373,7 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
     const btn = $('gerarAutomatico');
     return withBusyState(btn,'IA local analisando o conteúdo...', async()=>{
       await wait(140);
-      await fillAutomaticQuestions();
+      try { await fillAutomaticQuestions(); } catch(error) { setMsg('profMsg',firebaseError(error),'error'); }
     });
   }
 
@@ -6165,7 +6168,7 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
     if(raw.includes('<')){
       const temp=document.createElement('div');temp.innerHTML=sanitizePastedHtml(raw);
       const flatten=node=>node.nodeType===Node.ELEMENT_NODE&&['DIV','SECTION','ARTICLE'].includes(node.tagName)&&Array.from(node.children).some(el=>/^(P|DIV|H[1-6]|TABLE|FIGURE|ARTICLE|SECTION)$/.test(el.tagName))?Array.from(node.childNodes).flatMap(flatten):[node];
-      const rich=[];let current=null;
+      const rich=[];let current=null;const preamble=[];
       for(const node of Array.from(temp.childNodes).flatMap(flatten)){
         const value=editorContentToPlainText(node.outerHTML||node.textContent).trim();
         if(value.startsWith('?')){
@@ -6179,13 +6182,14 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
         }else if(current&&/^@dica\b/i.test(value))current.hint=value.replace(/^@dica\s*/i,'');
         else if(current&&/^[A-H][).]/i.test(value)){current.options.push(value);current.optionsHtml.push(node.outerHTML||escapeHtml(value));}
         else if(current){current.body.push(value);current.bodyHtml.push(node.outerHTML||escapeHtml(node.textContent));}
+        else preamble.push(node.outerHTML||escapeHtml(node.textContent));
       }
       if(current)rich.push(current);
-      if(rich.length)return rich;
+      if(rich.length){if(preamble.join('').trim())rich.unshift({html:preamble.join(''),title:'',body:[],options:[],linhas:0});return rich;}
     }
     const plain = raw.includes('<') ? editorContentToPlainText(raw) : raw;
     const lines=String(plain||'').split(/\r?\n/);
-    const qs=[]; let cur=null;
+    const qs=[]; let cur=null;const preamble=[];
     lines.forEach(line=>{
       const t=line.trim();
       if(t.startsWith('?')){
@@ -6204,9 +6208,10 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
       }
       else if(cur){
         cur.body.push(line);
-      }
+      }else preamble.push(line);
     });
     if(cur) qs.push(cur);
+    if(qs.length&&preamble.join('').trim())qs.unshift({html:escapeHtml(preamble.join('\n')).replace(/\n/g,'<br>'),title:'',body:[],options:[],linhas:0});
     if(!qs.length && (editorContentToPlainText(raw)||/<(?:img|table)\b/i.test(raw))){
       return [{title:'', body:[], options:[], hint:'', linhas:0, html:raw}];
     }
@@ -6250,11 +6255,15 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
     let content=prepararConteudoParaVersao(getEditorContent(),forcedVariant,aluno);
     const qs=parseQuestoes(content,'basica').map((q,i)=>normal?q:adaptQuestion(q,i,effective,'basica'));
     content=qs.map((q,i)=>renderQuestion(q,i,'basica',false)).join('');
-    content=D.adaptContent(content,profile);
+    const report=window.MaximusPedagogia.adaptHtml(content,profile,{answers:answerKeyContent===getEditorContent()?generatedAnswerKey:{}});
+    content=D.adaptContent(report.html,profile);
+    lastAdaptationReport=report;
+    if(!normal)renderAdaptationReport(report,profile);
+
     const nameMode=$('modoNomeCabecalho')?.value;
-    const info={model,aluno:{id:aluno.id||'',nome:nameMode==='linha'?'':aluno.nome,turma:aluno.turma,numero:aluno.numero||''},disciplina:norm($('disciplina').value),professor:currentProfile?.nome||currentProfile?.email||'Professor(a)',data:$('dataDocumento').value,valor:norm($('valorDocumento').value)||'3,5',profile,conteudo:content,versao:forcedVariant||'individual',baseEm:aluno.atualizadoEm||''};
+    const info={model,aluno:{id:aluno.id||'',nome:nameMode==='linha'?'':aluno.nome,turma:aluno.turma,numero:aluno.numero||''},disciplina:norm($('disciplina').value),professor:currentProfile?.nome||currentProfile?.email||'Professor(a)',data:$('dataDocumento').value,valor:norm($('valorDocumento').value)||'3,5',profile,qrPosition:$('posicaoQr')?.value||'direita',documentTitle:type,conteudo:content,versao:forcedVariant||'individual',baseEm:aluno.atualizadoEm||''};
     lastDocument=D.snapshot(info);
-    renderActiveAdaptations(detectAdaptations(effective));
+    renderActiveAdaptations(profile.rules);
     return D.paper(lastDocument,content);
   }
 
@@ -6271,7 +6280,7 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
     const body=q.bodyHtml?q.bodyHtml.join(''):q.body.filter(x=>norm(x)).map(x=>`<p>${escapeHtml(tx(x))}</p>`).join('');
     const opts=q.options?.length?`<div class="options">${q.optionsHtml?q.optionsHtml.join(''):q.options.map(o=>`<p>${escapeHtml(tx(o))}</p>`).join('')}</div>`:'';
     const hint=q.hint?`<div class="hint"><strong>Dica:</strong> ${escapeHtml(tx(q.hint))}</div>`:'';
-    const lines=Array.from({length:q.linhas||3},()=>'<div></div>').join('');
+    const lines=Array.from({length:q.options?.length?0:(q.linhas??3)},()=>'<div></div>').join('');
     return `<article class="question ${modo==='completa'?'complete':''}"><div class="q-title">${q.titleHtml?`${i+1}. ${q.titleHtml}`:escapeHtml(tx(title))}</div>${body}${opts}${hint}<div class="answer-lines">${lines}</div></article>`;
   }
 
@@ -6307,10 +6316,24 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
     try{
       await withBusyState(btn,'Gerando atividade/prova...', async()=>{
         if(!norm(editorContentToPlainText(getEditorContent())) && !/<(?:img|table)\b/i.test(getEditorContent()) && !(await fillAutomaticQuestions())) throw new Error('Insira as questões no editor antes de gerar.');
+        const batchReport={changes:[],pending:[],batch:turmaInteira?jobs.length:0};
+        for(const job of jobs){
+          job.html=await buildPaperHtml(job.aluno,job.variant);
+          job.report=lastAdaptationReport;
+          batchReport.pending.push(...job.report.pending.map(p=>job.aluno.nome+': '+p));
+          batchReport.changes.push(job.aluno.nome+': '+(job.report.changes.join(' ')||'Formatação conforme o perfil.'));
+        }
+        if(turmaInteira){
+          const signature=JSON.stringify(jobs.map(j=>[j.aluno.id,j.variant]).concat(batchReport.pending));
+          if(lastBatchReview!==signature&&batchReport.pending.length)$('manualAdaptationsReviewed').checked=false;
+          lastBatchReview=signature;lastAdaptationReport=batchReport;renderAdaptationReport(batchReport,{rules:[]});
+        }
+        ensureAdaptationReviewed();
         const zip=turmaInteira&&window.JSZip?new window.JSZip():null;
         for(const job of jobs){
           const aluno=job.aluno;
-          const html=await buildPaperHtml(aluno,job.variant);
+          const html=job.html;
+          const label=$('loadingOverlay')?.querySelector('.loading-text');if(label)label.textContent=`Gerando documento ${jobs.indexOf(job)+1} de ${jobs.length}...`;
           const temp=document.createElement('div');
           temp.style.position='fixed';
           temp.style.left='-9999px';
@@ -6321,13 +6344,13 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
           const copySuffix=job.copyNumber?`_${String(job.copyNumber).padStart(2,'0')}`:'';
           const baseName=job.copyNumber?'PROVA_NORMAL':safeFile(aluno.nome);
           const filename=`${baseName}${copySuffix}_${safeFile(aluno.turma)}_${safeFile(getDocumentType())}${variantSuffix}.pdf`;
-          const blob=await htmlToPdf(temp.querySelector('.paper'), filename, Boolean(zip));
-          if(zip) zip.file(filename,blob);
-          document.body.removeChild(temp);
+          try{const blob=await htmlToPdf(temp.querySelector('.paper'), filename, Boolean(zip));
+          if(zip) zip.file(filename,blob);}finally{temp.remove();}
           await audit('gerar_pdf',{alunoId:job.copyNumber?null:aluno.id, turma:aluno.turma, versao:job.variant||'individual',copia:job.copyNumber||null});
           await wait(220);
         }
         if(zip){
+          zip.file('Relatorio_de_adaptacoes.txt',batchReport.changes.join('\n')+(batchReport.pending.length?'\n\nCONFERÊNCIA MANUAL DO PROFESSOR\n'+batchReport.pending.join('\n'):''));
           const zipBlob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
           downloadBlob(`Documentos_${safeFile($('profTurmaSelect').value)}_${safeFile(getDocumentType())}.zip`,zipBlob);
         }
@@ -6370,7 +6393,7 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
     element?.querySelectorAll('[data-pdf-spacer="1"]').forEach(el=>el.remove());
   }
 
-  function imprimirPreview(){ const paper=$('previewProva')?.innerHTML; if(!paper){ setMsg('profMsg','Gere a prévia antes de imprimir.','error'); return; } const w=window.open('','_blank');if(!w){setMsg('profMsg','Permita a abertura da janela de impressão.','error');return;} w.document.write(`<html><head><title>Imprimir</title><link rel="stylesheet" href="styles.css"></head><body>${paper}<script>setTimeout(()=>print(),500)<\/script></body></html>`); w.document.close(); }
+  function imprimirPreview(){ try{ensureAdaptationReviewed();}catch(e){setMsg('profMsg',e.message,'error');return;} if(!$('revisaoProfessor')?.checked){setMsg('profMsg','Confira a revisão antes de imprimir.','error');return;} const paper=$('previewProva')?.innerHTML; if(!paper){ setMsg('profMsg','Gere a prévia antes de imprimir.','error'); return; } const w=window.open('','_blank');if(!w){setMsg('profMsg','Permita a abertura da janela de impressão.','error');return;} w.document.write(`<html><head><title>Imprimir</title><link rel="stylesheet" href="styles.css"></head><body>${paper}<script>setTimeout(()=>print(),500)<\/script></body></html>`); w.document.close(); }
 
   let migrationInFlight=false;
   function startSharedConfig(){
@@ -6416,15 +6439,43 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
     $('ruleAction')?.addEventListener('change',()=>{$('ruleValue').closest('label').classList.toggle('hidden',!['font','lines'].includes($('ruleAction').value));$('ruleValue').value=$('ruleAction').value==='lines'?5:16;});
   }
   function invalidatePreview(reason){
+    $('adaptationReport')?.replaceChildren(); $('manualReviewBox')?.classList.add('hidden');
     if($('revisaoProfessor'))$('revisaoProfessor').checked=false;
+    if($('manualAdaptationsReviewed'))$('manualAdaptationsReviewed').checked=false;
+    lastAdaptationReport=null; lastBatchReview='';
     if($('previewStatus'))$('previewStatus').textContent=reason||'O conteúdo mudou. Gere a prévia para conferir.';
     if($('previewProva'))$('previewProva').innerHTML='';
     lastDocument=null;
   }
+  function ensureAdaptationReviewed(){
+    if(lastAdaptationReport?.pending.length&&!$('manualAdaptationsReviewed')?.checked)throw new Error('Confira as adaptações que exigem ajuste manual e marque a confirmação no painel de adaptações.');
+  }
+  function renderAdaptationReport(report,profile){
+    const box=$('adaptationReport');if(!box)return;
+    box.innerHTML=`<p><strong>${report.batch?'Conferência de '+report.batch+' documentos da turma':profile.rules.filter(r=>r.status==='arquivo').length+' recurso(s) de adaptação no documento.'}</strong></p>${report.changes.map(t=>`<p>${escapeHtml(t)}</p>`).join('')}${report.pending.length?`<div class="warning"><strong>Conferência manual necessária</strong><ul>${report.pending.map(t=>`<li>${escapeHtml(t)}</li>`).join('')}</ul></div>`:'<p class="message ok">Não há ajustes manuais adicionais identificados.</p>'}`;
+    $('manualReviewBox')?.classList.toggle('hidden',!report.pending.length);
+  }
+  function renderAnswerKeys(){
+    const box=$('answerKeys');if(!box)return;
+    const temp=document.createElement('div');temp.innerHTML=parseQuestoes(getEditorContent(),'basica').map((q,i)=>renderQuestion(q,i,'basica',false)).join('');
+    const cards=[...temp.querySelectorAll('.ai-question-card,.question')].filter(c=>!c.classList.contains('free-content'));
+    box.innerHTML=cards.map((card,i)=>{
+      const options=[...card.querySelectorAll('.options > p,.ai-options > li')];if(!options.length)return '';
+      return `<label>Questão ${i+1}<select data-answer-key="${i}"><option value="">Selecione a correta</option>${options.map((o,j)=>`<option value="${j}" ${generatedAnswerKey[i]===j?'selected':''}>${String.fromCharCode(65+j)}) ${escapeHtml(o.textContent.replace(/^[A-H][).]\s*/,''))}</option>`).join('')}</select></label>`;
+    }).join('')||'<p class="muted">Use questões estruturadas para definir o gabarito. Exemplo: ? Enunciado, seguido de A), B), C).</p>';
+    box.querySelectorAll('select').forEach(select=>select.addEventListener('change',()=>{
+      if(answerKeyContent!==getEditorContent())generatedAnswerKey={};
+      answerKeyContent=getEditorContent();
+      if(select.value==='')delete generatedAnswerKey[select.dataset.answerKey];else generatedAnswerKey[select.dataset.answerKey]=Number(select.value);
+      invalidatePreview();
+    }));
+  }
   function setupMaximusProfessor(){
     $('baixarDocxAluno')?.addEventListener('click',exportDocxAluno);
-    $('workspace')?.addEventListener('input',e=>{if(e.target.id!=='revisaoProfessor')invalidatePreview();});
-    $('workspace')?.addEventListener('change',e=>{if(e.target.id!=='revisaoProfessor')invalidatePreview();});
+    $('updateAnswerKeys')?.addEventListener('click',()=>{if(answerKeyContent!==getEditorContent())generatedAnswerKey={};answerKeyContent=getEditorContent();renderAnswerKeys();});
+    document.querySelectorAll('input[name=modoAdaptacao]').forEach(el=>el.addEventListener('change',()=>{renderActiveAdaptations(detectAdaptations(alunoSelecionado));}));
+    $('workspace')?.addEventListener('input',e=>{if(!['revisaoProfessor','manualAdaptationsReviewed'].includes(e.target.id)&&!e.target.matches('[data-answer-key]'))invalidatePreview();});
+    $('workspace')?.addEventListener('change',e=>{if(!['revisaoProfessor','manualAdaptationsReviewed'].includes(e.target.id)&&!e.target.matches('[data-answer-key]'))invalidatePreview();});
     document.querySelectorAll('.word-toolbar button').forEach(btn=>btn.addEventListener('click',()=>invalidatePreview()));
   }
   async function exportDocxAluno(){
@@ -6433,6 +6484,7 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
     try{await withBusyState($('baixarDocxAluno'),'Preparando documento Word...',async()=>{
       if(!editorContentToPlainText(getEditorContent())&&!/<(?:img|table)\b/i.test(getEditorContent()))throw new Error('Insira as questões no editor.');
       await buildPaperHtml(alunoSelecionado);
+      ensureAdaptationReviewed();
       const blob=await D.docx(lastDocument);
       downloadBlob(`${safeFile(alunoSelecionado.nome)}_${safeFile(getDocumentType())}.docx`,blob);
     });setMsg('profMsg','Documento Word gerado a partir do modelo original.','ok');}
@@ -6708,7 +6760,7 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
     currentUser=null;currentProfile=null;alunosCache=[];professoresCache=[];turmasCache=[];colunasCache=[];bancoQuestoesCache=[];alunoSelecionado=null;editAlunoId=null;
     setEditorContent('');invalidatePreview();limparDocumentoImportado();window.MaximusImporter.clear();
     document.querySelectorAll('input[type=file]').forEach(input=>input.value='');
-    ['alunoInfo','profResumo','adminResumo','professoresTabela','alunosTabela','bancoQuestoesLista','editFields','customRules','colunasLidas','turmasCheckboxes','adaptRulesBox','sugestoesPedagogicasBox'].forEach(id=>{if($(id))$(id).replaceChildren();});
+    ['alunoInfo','profResumo','adminResumo','professoresTabela','alunosTabela','bancoQuestoesLista','editFields','customRules','colunasLidas','turmasCheckboxes','adaptRulesBox','sugestoesPedagogicasBox','adaptationReport','answerKeys'].forEach(id=>{if($(id))$(id).replaceChildren();});
     ['profTurmaSelect','profAlunoSelect'].forEach(id=>{if($(id))$(id).replaceChildren();});
     ['adminSenha','profSenha','complementoProfessor','disciplina','temaConteudo','textoApoioGeral','conteudoMinistrado','tipoDocumentoPersonalizado','buscaBancoQuestoes','filtroBancoDisciplina'].forEach(id=>{if($(id))$(id).value='';});
     ['statAlunos','statTurmas','statProfessores','statColunas'].forEach(id=>{if($(id))$(id).textContent='0';});
@@ -6716,6 +6768,12 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
     $('professorForm')?.reset();$('alunoManualForm')?.reset();$('ruleForm')?.reset();
   }
   setupPasswordEyes();setupHamburgerMenus();setupAdmin();setupProfessor();setupManagement();
+  document.querySelectorAll('[data-reset-password]').forEach(button=>button.addEventListener('click',async()=>{
+    const admin=button.dataset.resetPassword==='admin',target=admin?'adminLoginMsg':'profLoginMsg';
+    const email=norm($(admin?'adminEmail':'profEmail').value);
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){setMsg(target,'Informe seu e-mail no campo de acesso para receber o link de redefinição.','error');return;}
+    try{await withBusyState(button,'Enviando...',()=>auth.sendPasswordResetEmail(email));setMsg(target,'Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha. Confira também o spam.','ok');}catch(error){setMsg(target,firebaseError(error),'error');}
+  }));
   document.querySelectorAll('[data-access-page]').forEach(link=>link.addEventListener('click',event=>{
     event.preventDefault();if(auth.currentUser)return;
     showAccess(link.dataset.accessPage);history.replaceState(null,'',link.getAttribute('href'));
