@@ -200,3 +200,11 @@
 .account-card .form-grid{margin:18px 0}
 .ios-install-steps{padding-left:24px;display:grid;gap:14px;line-height:1.6;font-size:15px}
 @media screen and (max-width:420px){.mobile-appbar [data-install]{font-size:11px;max-width:110px}.mobile-brand img{display:none}.mobile-brand strong{font-size:12px}}
+
+/* Importação de turmas por planilha. */
+.class-import-card{display:flex;flex-wrap:wrap;align-items:center;gap:16px;padding:18px;margin:0 0 20px;border:1px solid var(--line);border-radius:12px;background:#f7f6fc}
+.class-import-card>div{flex:1 1 240px;min-width:0}.class-import-card p{margin:6px 0 0}.class-import-card .btn{min-height:48px}
+.wizard-main>details{margin:16px 0}.wizard-main summary{cursor:pointer;font-weight:600;padding:12px 0}.wizard-main #wizardMapping{margin-top:16px}
+.sheet-choice>.check{flex:0 0 24px;width:24px;min-width:24px}.sheet-choice>button{flex:1 1 auto;min-width:90px}.sheet-choice{align-items:center}
+#wizardDetection{white-space:normal}#wizardReport{white-space:pre-line;overflow-wrap:anywhere}
+@media(max-width:600px){.class-import-card .btn{width:100%}.wizard-main .form-grid{grid-template-columns:minmax(0,1fr)}.import-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.import-summary>div{min-width:0;padding:10px}.import-summary span{font-size:12px}}

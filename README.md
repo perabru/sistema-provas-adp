@@ -98,7 +98,11 @@ Não é um modelo de linguagem generativo. O professor deve conferir o gabarito,
 
 ## Importação e dados
 
-- A coordenação mantém a importação de planilhas com mapeamento de colunas e prévia das alterações.
+- Em **Coordenação → Turmas → Selecionar planilha** (ou **Importar planilhas**), envie XLSX, XLS, XLSM, XLSB, ODS, CSV ou TSV, até 25 MB. Não é necessário usar um modelo fixo.
+- O assistente reconhece listas contendo apenas turmas, alunos com coluna de turma, ano/série separado da letra, uma turma por aba e listas de alunos distribuídas em colunas com os nomes das turmas no cabeçalho. Também tenta reconhecer listas sem cabeçalho e títulos antes da tabela. Células vazias podem repetir a última turma preenchida.
+- Confira as abas, as turmas/alunos reconhecidos e os totais antes de salvar. Em formatos ambíguos, escolha o tipo da aba e ajuste cabeçalho, colunas ou turma padrão. Abas não reconhecidas ficam desmarcadas para revisão; não são adivinhadas como cadastros. Planilhas protegidas por senha, digitalizações e tabelas sem nomes/turmas legíveis precisam de ajuste ou exportação pelo responsável.
+- A importação inclui turmas sem duplicação e inclui/atualiza alunos; preserva os alunos ausentes do arquivo, os vínculos de professores e seus complementos. A gravação de dados e metadados é atômica no Realtime Database e exige coordenação ativa com senha já alterada. O histórico fica em `configuracao/importacoes`, coberto pela permissão de configuração da coordenação.
+- O processamento da planilha ocorre no navegador, com limites de 20.000 linhas e 200 colunas por aba. Nada é salvo antes da confirmação.
 - Matrículas e identificadores existentes são preservados; não há migração destrutiva do banco.
 - PDF com texto selecionável, DOCX, TXT, HTML e imagens são aceitos no editor. PDFs digitalizados precisam de OCR externo; o sistema explica essa limitação.
 - Não há envio do conteúdo a serviços de IA. Contas e registros salvos continuam usando o Firebase original.
@@ -106,10 +110,11 @@ Não é um modelo de linguagem generativo. O professor deve conferir o gabarito,
 
 ## Manutenção e testes
 
-Sem npm ou compilação para publicar. Mantenha juntos `index.html`, `styles.css`, `mobile.css`, `app.js`, `conta.js`, `pedagogia.js`, `resumo.js`, `mobile.js`, `pwa.js`, `sw.js`, `manifest.webmanifest` e a pasta `icons/`. As bibliotecas de documentos e os modelos originais estão incorporados em `app.js`, com seus avisos de licença. Ao publicar outra versão, atualize os identificadores dos arquivos no HTML e no cache de `sw.js`, além de `VERSION`.
+Sem npm ou compilação para publicar. Mantenha juntos `index.html`, `styles.css`, `mobile.css`, `app.js`, `conta.js`, `planilhas.js`, `pedagogia.js`, `resumo.js`, `mobile.js`, `pwa.js`, `sw.js`, `manifest.webmanifest` e a pasta `icons/`. As bibliotecas de documentos e os modelos originais estão incorporados em `app.js`, com seus avisos de licença. Ao publicar outra versão, atualize os identificadores dos arquivos no HTML e no cache de `sw.js`, além de `VERSION`.
 
 ```sh
 node --check app.js
+node --check planilhas.js
 node --check pedagogia.js
 node --check resumo.js
 node --check conta.js

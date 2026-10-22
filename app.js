@@ -3923,10 +3923,10 @@ len1=val.length;len1>k;k++)item=val[k],childNode={},childNode[key]=item,lastChil
       const old=matches[0];
       let id=old?.id || `al_${hash(key)}_${hash(key.split('').reverse().join(''))}`;
       if(!old && existing.some(a=>a.id===id && identity(a)!==key)) {errors.push(`Conflito de identificação de ${row.nome}. Informe a matrícula.`); continue;}
-      const record={...old,...row}; delete record.id;
+      const record={...old,...row,dadosCompletos:{...(old?.dadosCompletos||{}),...(row.dadosCompletos||{})}}; delete record.id;
       record.turmaKey=classKey(record.turma);
       record.criadoEm=old?.criadoEm || at;
-      const same = old && compare(old)===compare(row);
+      const same = old && compare(old)===compare(record);
       record.atualizadoEm=same ? old.atualizadoEm || at : at;
       if(!old) added++; else if(same) unchanged++; else changed++;
       updates[`alunos/${id}`]=record;
@@ -4223,124 +4223,7 @@ len1=val.length;len1>k;k++)item=val[k],childNode={},childNode[key]=item,lastChil
 })();
 
 ;
-(function () {
-  'use strict';
-  const C=window.MaximusCore;
-  let state=null,clearOnFinish=false,stateVersion=0;
-  const $=id=>document.getElementById(id);
-  function createDialog() {
-    if($('importWizard')) return;
-    const dialog=document.createElement('dialog'); dialog.id='importWizard'; dialog.className='import-wizard';
-    dialog.setAttribute('aria-labelledby','wizardTitle');
-    dialog.innerHTML=`<header class="wizard-top"><div><span class="eyebrow">COORDENAÇÃO · PLANILHAS</span><h2 id="wizardTitle">Conferir importação</h2><p id="wizardFile" class="muted"></p></div><button id="wizardClose" type="button" class="btn light">Fechar</button></header>
-      <div class="wizard-layout"><aside><h3>Abas do arquivo</h3><div id="wizardSheets"></div><label class="check"><input id="wizardReplace" type="checkbox">Substituir toda a base</label><p class="muted small">Desmarcado: inclui alunos e atualiza os existentes. Marcado: remove os alunos ausentes neste arquivo.</p></aside>
-      <div class="wizard-main"><div class="form-grid"><label>Linha do cabeçalho<input id="wizardHeader" type="number" min="1"></label><label>Linhas de cabeçalho<select id="wizardHeaderLines"><option value="1">Uma linha</option><option value="2">Duas linhas</option><option value="3">Três linhas</option></select></label><label>Turma quando a célula estiver vazia<input id="wizardClass"></label><label class="check"><input id="wizardCarryClass" type="checkbox">Repetir a última turma preenchida</label></div>
-      <h3>Colunas da planilha</h3><p class="muted">Confira a identificação automática. Selecione mais de uma coluna em adaptações e orientações quando necessário.</p><div id="wizardMapping" class="mapping-grid"></div>
-      <h3>Prévia das primeiras linhas</h3><div class="table-wrap"><table id="wizardPreview"></table></div></div></div>
-      <div id="wizardReport" class="report" role="status" aria-live="polite"></div><div id="wizardSummary" class="import-summary hidden"></div>
-      <footer class="wizard-actions"><button id="wizardCheck" type="button" class="btn secondary">Conferir atualização</button><button id="wizardSave" type="button" class="btn primary" disabled>Atualizar base</button></footer>`;
-    document.body.appendChild(dialog);dialog.addEventListener('cancel',e=>{if(state?.saving)e.preventDefault();});
-    $('wizardClose').addEventListener('click',()=>dialog.close());
-    ['wizardHeader','wizardHeaderLines'].forEach(id=>$(id).addEventListener('change',()=>{
-      const sheet=state.sheets[state.current];
-      sheet.header=Math.max(0,Number($('wizardHeader').value)-1); sheet.headerLines=Number($('wizardHeaderLines').value);
-      sheet.parsed=C.parseSheet(sheet.raw,sheet.header,sheet.headerLines); sheet.mapping=C.autoMap(sheet.parsed.columns); dirty(); renderCurrent();
-    }));
-    $('wizardClass').addEventListener('input',()=>{state.sheets[state.current].fallback=$('wizardClass').value;dirty();});
-    $('wizardCarryClass').addEventListener('change',()=>{state.sheets[state.current].carry=$('wizardCarryClass').checked;dirty();});
-    $('wizardReplace').addEventListener('change',dirty);
-    $('wizardCheck').addEventListener('click',check);
-    $('wizardSave').addEventListener('click',save);
-  }
-  function dirty() {state.plan=null;$('wizardSave').disabled=true;$('wizardSummary').classList.add('hidden');$('wizardReport').textContent='Confira a atualização depois de ajustar as colunas.';}
-  function renderSheets() {
-    $('wizardSheets').innerHTML=state.sheets.map((s,i)=>`<div class="sheet-choice ${i===state.current?'selected':''}"><label class="check"><input type="checkbox" data-include="${i}" ${s.include?'checked':''} aria-label="Importar aba ${C.escape(s.name)}"></label><button type="button" data-sheet="${i}">${C.escape(s.name)}<small>${s.parsed.rows.length} linhas</small></button></div>`).join('');
-    $('wizardSheets').querySelectorAll('[data-sheet]').forEach(b=>b.addEventListener('click',()=>{state.current=Number(b.dataset.sheet);renderSheets();renderCurrent();}));
-    $('wizardSheets').querySelectorAll('[data-include]').forEach(c=>c.addEventListener('change',()=>{state.sheets[Number(c.dataset.include)].include=c.checked;dirty();}));
-  }
-  function renderCurrent() {
-    const s=state.sheets[state.current];
-    $('wizardHeader').value=s.header+1; $('wizardHeader').max=Math.max(1,s.raw.length); $('wizardHeaderLines').value=s.headerLines;
-    $('wizardClass').value=s.fallback; $('wizardCarryClass').checked=s.carry;
-    $('wizardMapping').innerHTML=C.fields.map(f=>{
-      const options=s.parsed.columns.map(c=>`<option value="${c.id}" ${(f.multi?(s.mapping[f.key]||[]).includes(c.id):s.mapping[f.key]===c.id)?'selected':''}>${C.escape(c.label)}</option>`).join('');
-      return f.multi ? `<fieldset><legend>${C.escape(f.label)}</legend><div class="column-checks">${s.parsed.columns.map(c=>`<label class="check"><input type="checkbox" data-role="${f.key}" value="${c.id}" ${(s.mapping[f.key]||[]).includes(c.id)?'checked':''}>${C.escape(c.label)}</label>`).join('')}</div></fieldset>` : `<label>${C.escape(f.label)}${f.key==='nome'?' *':''}<select data-role="${f.key}"><option value="">${f.key==='nome'?'Selecione a coluna':'Não informado'}</option>${options}</select></label>`;
-    }).join('');
-    $('wizardMapping').querySelectorAll('[data-role]').forEach(el=>el.addEventListener('change',()=>{
-      const f=C.fields.find(f=>f.key===el.dataset.role);
-      s.mapping[f.key]=f.multi?Array.from($('wizardMapping').querySelectorAll(`input[data-role="${f.key}"]:checked`)).map(el=>el.value):el.value;dirty();
-    }));
-    const cols=s.parsed.columns;
-    $('wizardPreview').innerHTML=`<thead><tr><th>Linha</th>${cols.map(c=>`<th>${C.escape(c.label)}</th>`).join('')}</tr></thead><tbody>${s.parsed.rows.slice(0,5).map(r=>`<tr><td>${r.line}</td>${r.values.map(v=>`<td>${C.escape(v)}</td>`).join('')}</tr>`).join('')}</tbody>`;
-  }
-  function calculate() {
-    const rows=[],schemas=[],errors=[],skipped=[];
-    for(const s of state.sheets.filter(s=>s.include)) {
-      if(!s.mapping.nome) {errors.push(`Aba ${s.name}: indique a coluna do nome do aluno.`);continue;}
-      const result=C.recordsFromSheet(s.parsed,s.mapping,{sheetName:s.name,filename:state.file.name,fallbackClass:s.fallback,fillClass:s.carry});
-      rows.push(...result.records); skipped.push(...result.skipped.map(line=>`${s.name}: linha ${line}`));
-      schemas.push({aba:s.name,cabecalho:s.header+1,linhasCabecalho:s.headerLines,mapeamento:s.mapping,colunas:s.parsed.columns.map(c=>({id:c.id,nome:c.original})),turmaPadrao:s.fallback,repetirTurma:s.carry});
-    }
-    if(!rows.length) errors.push('Nenhum aluno válido foi encontrado nas abas selecionadas.');
-    const plan=C.importPlan(rows,state.hooks.existing(),$('wizardReplace').checked);
-    plan.errors.push(...errors); plan.skipped=skipped; plan.schemas=schemas;
-    return plan;
-  }
-  function check() {
-    try {
-      state.plan=calculate(); const p=state.plan;
-      $('wizardSummary').classList.remove('hidden');
-      $('wizardSummary').innerHTML=`<div><strong>${p.added}</strong><span>Novos alunos</span></div><div><strong>${p.changed}</strong><span>Atualizações</span></div><div><strong>${p.unchanged}</strong><span>Sem alteração</span></div><div><strong>${p.removed}</strong><span>Remoções</span></div>`;
-      $('wizardReport').textContent=p.errors.length?p.errors.join('\n'):`${p.records.length} alunos válidos. ${p.duplicates.length} linhas repetidas idênticas. ${p.skipped.length} linhas sem nome ignoradas.${p.skipped.length?'\n'+p.skipped.slice(0,12).join('\n'):''}\nAs colunas extras serão preservadas. As orientações dos professores serão mantidas.`;
-      $('wizardSave').disabled=Boolean(p.errors.length);
-    } catch(e) {$('wizardReport').textContent=e.message;$('wizardSave').disabled=true;}
-  }
-  async function save() {
-    state.saving=true;const button=$('wizardSave');
-    button.disabled=true;$('wizardClose').disabled=true;$('wizardCheck').disabled=true;
-    $('importWizard').querySelectorAll('input,select,button[data-sheet]').forEach(el=>el.disabled=true);
-    try {
-      // Recalcula sobre a versão mais recente recebida em tempo real.
-      const plan=calculate(); if(plan.errors.length) throw new Error(plan.errors.join('\n'));
-      $('wizardReport').textContent='Salvando a atualização. Aguarde a confirmação.';
-      await state.hooks.confirm(plan,{arquivo:state.file.name,substituir:$('wizardReplace').checked});
-      $('importWizard').close();
-    } catch(e) {$('wizardReport').textContent='Não foi possível salvar. A base anterior foi preservada.\n'+e.message;button.disabled=false;}
-    finally {state.saving=false;$('wizardClose').disabled=false;$('wizardCheck').disabled=false;$('importWizard').querySelectorAll('input,select,button[data-sheet]').forEach(el=>el.disabled=false);if(clearOnFinish)clear();}
-  }
-  async function open(file,hooks) {
-    const version=stateVersion;
-    if(state?.saving)throw new Error('Aguarde o término da atualização atual.');
-    if(!window.XLSX) throw new Error('O leitor de planilhas não carregou. Recarregue a página.');
-    if(file.size>25*1024*1024) throw new Error('O arquivo excede 25 MB. Divida a planilha por turma.');
-    if(!/\.(xlsx|xls|xlsm|ods|csv|tsv)$/i.test(file.name)) throw new Error('Escolha um arquivo XLSX, XLS, XLSM, ODS, CSV ou TSV.');
-    const bytes=await file.arrayBuffer();if(version!==stateVersion)throw new Error('Importação cancelada pelo encerramento da sessão.');
-    let data=bytes, type='array';
-    if(/\.(csv|tsv)$/i.test(file.name)) {const utf=new TextDecoder('utf-8').decode(bytes);data=utf.includes('\uFFFD')?new TextDecoder('windows-1252').decode(bytes):utf;type='string';}
-    const book=XLSX.read(data,{type,cellDates:true,raw:type==='string'});
-    const sheets=book.SheetNames.map(name=>{
-      const sheet=book.Sheets[name];
-      const range=sheet['!ref']?XLSX.utils.decode_range(sheet['!ref']):null;
-      if(range && (range.e.r>20000||range.e.c>199)) throw new Error(`Aba ${name}: limite de 20.000 linhas e 200 colunas. Remova linhas vazias excedentes.`);
-      const raw=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',blankrows:true,raw:false,dateNF:'dd/mm/yyyy'});
-      const header=C.inferHeader(raw), parsed=C.parseSheet(raw,header);
-      return {name,raw,header,headerLines:1,parsed,mapping:C.autoMap(parsed.columns),fallback:name,carry:false,include:Boolean(parsed.rows.length)};
-    });
-    if(!sheets.length) throw new Error('O arquivo não contém abas.');
-    createDialog();state={file,hooks,sheets,current:0,plan:null};
-    $('wizardFile').textContent=`${file.name} · ${sheets.length} aba(s)`;$('wizardReplace').checked=false;
-    $('wizardReport').textContent='Confira as abas, o cabeçalho e o mapeamento antes de atualizar.';
-    $('wizardSummary').classList.add('hidden');$('wizardSave').disabled=true;
-    renderSheets();renderCurrent();$('importWizard').showModal();
-  }
-  function clear(){
-    stateVersion++;
-    const dialog=$('importWizard');
-    if(state?.saving){clearOnFinish=true;dialog?.close();dialog?.querySelectorAll('tbody,#wizardReport,#wizardSummary,#wizardFile').forEach(el=>el.replaceChildren());return;}
-    clearOnFinish=false;state=null;dialog?.close();dialog?.remove();
-  }
-  window.MaximusImporter={open,clear};
-})();
+/* O assistente de planilhas fica em planilhas.js. */
 
 ;
 /* Escola Máximu's — Sistema de Provas e Atividades Adaptadas
@@ -4967,6 +4850,8 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
     $('alunoManualForm')?.addEventListener('submit', cadastrarAlunoManual);
     $('limparAlunoManual')?.addEventListener('click', ()=>{ $('alunoManualForm')?.reset(); setMsg('alunoManualMsg',''); });
     $('btnImportarPlanilha')?.addEventListener('click', ()=>{ const file=$('arquivoPlanilha')?.files?.[0]; if(!file){ $('importReport').textContent='Selecione uma planilha.'; return; } importarPlanilhaAlunos(file); });
+    $('btnImportarTurmas')?.addEventListener('click',()=>$('arquivoTurmas').click());
+    $('arquivoTurmas')?.addEventListener('change',()=>{const file=$('arquivoTurmas').files?.[0];if(file)importarPlanilhaAlunos(file);$('arquivoTurmas').value='';});
     $('btnImportarProfessores')?.addEventListener('click', importarPlanilhaProfessores);
     $('adminLogout')?.addEventListener('click', ()=>auth.signOut());
     $('buscaAlunos')?.addEventListener('input', renderAlunosTable);
@@ -5101,24 +4986,27 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
   }
 
   async function importarPlanilhaAlunos(file){
-    const report=$('importReport');
+    const report=$('importReport'),actor=currentUser?.uid;
     try {
-      report.textContent='Lendo o arquivo...';
+      requireCoordinator();report.textContent='Identificando as abas, turmas e alunos...';
       await window.MaximusImporter.open(file,{
         existing:()=>alunosCache,
-        confirm:async(plan,meta)=>{
-          if(!connectionReady) throw new Error('Reconecte à internet antes de atualizar a base.');
-          const revision=uid(),at=nowIso();
-          const updates={...plan.updates};appendClassRegistration(updates,plan.records.map(a=>a.turma));
-          updates['importacoes/'+revision]={...meta,por:currentUser.uid,em:at,novos:plan.added,atualizados:plan.changed,inalterados:plan.unchanged,removidos:plan.removed,mapeamentos:plan.schemas};
-          updates['configuracao/ultimaImportacao']={id:revision,em:at,arquivo:meta.arquivo,total:plan.records.length};
-          if(new Blob([JSON.stringify(updates)]).size>12*1024*1024) throw new Error('A atualização excede 12 MB. Divida o arquivo por turma e use o modo de atualização.');
-          await db.ref().update(updates);
-          report.textContent=`Base atualizada. ${plan.added} novos, ${plan.changed} atualizados, ${plan.unchanged} sem alteração e ${plan.removed} removidos. Os professores recebem a atualização automaticamente.`;
-        }
+        classes:()=>activeClassList().map(t=>t.nome),
+        confirm:async(plan,meta)=>exclusiveClassChange(async()=>{
+          requireCoordinator();if(currentUser.uid!==actor)throw new Error('A sessão mudou. Analise a planilha novamente.');
+          const latest=await managementSnapshot(),fresh=C.importPlan(plan.incoming,latest.students,false);
+          if(fresh.errors.length)throw new Error(fresh.errors.join('\n'));
+          if(fresh.added!==plan.added||fresh.changed!==plan.changed||fresh.unchanged!==plan.unchanged)throw new Error('A base mudou durante a conferência. Feche e analise a planilha novamente para atualizar os totais.');
+          const revision=uid(),at=nowIso(),updates={...fresh.updates};
+          appendClassRegistration(updates,plan.classes,latest.registry);
+          updates['configuracao/importacoes/'+revision]={...meta,por:actor,em:at,turmas:plan.classes.length,novos:fresh.added,atualizados:fresh.changed,inalterados:fresh.unchanged,mapeamentos:plan.schemas};
+          updates['configuracao/ultimaImportacao']={id:revision,em:at,arquivo:meta.arquivo,total:fresh.records.length,turmas:plan.classes.length};
+          await sendManagementUpdates(updates);
+          report.textContent=`Importação concluída: ${plan.classes.length} turma(s), ${fresh.added} novo(s) aluno(s), ${fresh.changed} atualizado(s) e ${fresh.unchanged} sem alteração. Os professores recebem a atualização automaticamente.`;
+          setMsg('turmaMsg',report.textContent,'ok');
+        })
       });
-      report.textContent='Confira o mapeamento na janela de importação.';
-    } catch(e) {report.textContent='Erro ao ler a planilha: '+firebaseError(e);}
+    } catch(e) {report.textContent='Não foi possível analisar a planilha: '+firebaseError(e);setMsg('turmaMsg',report.textContent,'error');}
   }
 
   async function importarPlanilhaProfessoresLegacy(){
@@ -6400,7 +6288,7 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
     db.ref('configuracao').on('value',snap=>{
       const config=snap.val()||{};turmaRegistry=config.turmas||{};refreshDerivedCaches();if(page==='admin')renderAdmin();
       ruleConfigCache=Array.isArray(config.adaptacoes)?config.adaptacoes:C.defaultRules;
-      if($('lastImportInfo'))$('lastImportInfo').textContent=config.ultimaImportacao?`Última atualização: ${D.issued(config.ultimaImportacao.em)} · ${config.ultimaImportacao.total} alunos no arquivo.`:'';
+      if($('lastImportInfo'))$('lastImportInfo').textContent=config.ultimaImportacao?`Última atualização: ${D.issued(config.ultimaImportacao.em)} · ${config.ultimaImportacao.turmas??'—'} turma(s) · ${config.ultimaImportacao.total} aluno(s) no arquivo.`:'';
       renderRulesEditor();
       if(page==='professor'&&alunoSelecionado){renderActiveAdaptations(detectAdaptations(alunoSelecionado));invalidatePreview('As regras de adaptação foram atualizadas.');}
     },()=>setMsg(page==='admin'?'adminLoginMsg':'profMsg','Não foi possível sincronizar os dados. Tente novamente.','error'));
