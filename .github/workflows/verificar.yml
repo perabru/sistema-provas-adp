@@ -13,5 +13,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --check app.js && node --check pedagogia.js && node --check resumo.js
-      - run: node --test tests/pedagogia.test.cjs
+      - run: node --check app.js && node --check pedagogia.js && node --check resumo.js && node --check mobile.js && node --check pwa.js && node --check sw.js
+      - run: node --test tests/*.test.cjs

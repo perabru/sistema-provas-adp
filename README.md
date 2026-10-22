@@ -19,6 +19,21 @@ Acesse **Resumo do conteúdo** na área do professor ou **Resumo de conteúdo ·
 
 O resumo é **extrativo**: seleciona frases presentes no material, identifica termos recorrentes e separa fórmulas/dados. Não consulta uma IA externa nem completa lacunas com fatos inventados. Textos curtos podem aparecer quase integralmente; o detalhamento controla a quantidade máxima de ideias. A revisão do professor continua necessária.
 
+## Celular e aplicativo Android
+
+A interface prioriza celulares, com navegação inferior, menu lateral, campos legíveis, botões maiores e editor ajustado à tela. A prévia permite alternar entre **Ajustar à tela** e **Ver em tamanho real**, preservando as dimensões de impressão nos arquivos.
+
+1. No Android, abra o [sistema](https://perabru.github.io/sistema-provas-adp/) no Chrome com internet.
+2. Toque em **Instalar aplicativo** e confirme a instalação na janela do navegador.
+3. Se a janela não aparecer, use o menu **⋮ → Instalar aplicativo** ou **Adicionar à tela inicial**. Dentro de WhatsApp ou Instagram, escolha antes **Abrir no navegador**.
+4. Abra **Provas Máximu’s** pela tela inicial. O botão desaparece quando o sistema detecta a instalação.
+
+A confirmação da instalação depende do usuário e da disponibilidade do navegador. Não é necessário baixar APK ou ativar o modo desenvolvedor. Em iPhone/iPad, o guia orienta usar **Safari → Compartilhar → Adicionar à Tela de Início**.
+
+Após o primeiro carregamento completo com internet, o aplicativo mantém os arquivos públicos em cache. O resumo e suas exportações funcionam sem conexão; login, alunos, turmas, banco de questões e sincronização exigem internet. O cache não guarda respostas do Firebase nem dados de alunos. Não desinstale nem limpe os dados do navegador enquanto houver conteúdo não exportado.
+
+Uma nova versão é oferecida no botão **Atualizar**. O aplicativo pede confirmação se houver edição em andamento e mantém o HTML e os scripts na mesma versão até a atualização.
+
 ## Adaptações
 
 As regras usam as orientações registradas, o tipo de prova e o complemento do professor. Um diagnóstico isolado não determina adaptações. Valores SIM/NÃO e instruções negativas são respeitados por recurso.
@@ -77,16 +92,19 @@ Não é um modelo de linguagem generativo. O professor deve conferir o gabarito,
 
 ## Manutenção e testes
 
-Sem npm ou compilação para publicar. Mantenha juntos `index.html`, `styles.css`, `app.js`, `pedagogia.js` e `resumo.js`. As bibliotecas de documentos e os modelos originais estão incorporados em `app.js`, com seus avisos de licença.
+Sem npm ou compilação para publicar. Mantenha juntos `index.html`, `styles.css`, `mobile.css`, `app.js`, `pedagogia.js`, `resumo.js`, `mobile.js`, `pwa.js`, `sw.js`, `manifest.webmanifest` e a pasta `icons/`. As bibliotecas de documentos e os modelos originais estão incorporados em `app.js`, com seus avisos de licença. Ao publicar outra versão, atualize os identificadores dos arquivos no HTML e no cache de `sw.js`, além de `VERSION`.
 
 ```sh
 node --check app.js
 node --check pedagogia.js
 node --check resumo.js
-node --test tests/pedagogia.test.cjs
+node --check mobile.js
+node --check pwa.js
+node --check sw.js
+node --test tests/*.test.cjs
 ```
 
-Os testes cobrem regras, negações, redução com preservação do gabarito, resumos fiéis ao texto, geração local e identidade de alunos na importação. A verificação de interface usa dados fictícios, sem gravar no Firebase de produção.
+Os testes cobrem regras, negações, redução com preservação do gabarito, resumos fiéis ao texto, geração local, identidade de alunos na importação, instalação por gesto do usuário, cache offline, isolamento entre sites e atualização sem misturar versões. A verificação de interface usa dados fictícios, sem gravar no Firebase de produção.
 
 ### Publicação
 
