@@ -30,7 +30,7 @@ test('prepara os arquivos públicos e mantém o resumo disponível offline',asyn
   w.state.fail=true;
   const page=await w.request('https://perabru.github.io/sistema-provas-adp/?source=pwa',{mode:'navigate'});
   assert.equal(page.cached,'https://perabru.github.io/sistema-provas-adp/index.html');
-  const summary=await w.request('https://perabru.github.io/sistema-provas-adp/resumo.js?v=20261022-mobile2');
+  const summary=await w.request('https://perabru.github.io/sistema-provas-adp/resumo.js?v=20261022-contas3');
   assert.match(summary.cached,/resumo\.js/);
 });
 test('uma versão pendente não mistura HTML novo com scripts antigos',async()=>{
@@ -53,12 +53,12 @@ test('limpa somente versões deste aplicativo e atualiza apenas após solicitaç
   assert.equal(w.storage.has('maximus-shell-/sistema-provas-adp/-antiga'),false);assert.equal(w.storage.has('cache-de-outro-site'),true);assert.equal(w.state.skipped,0);
   await w.lifecycle('message',{data:{type:'SKIP_WAITING'}});assert.equal(w.state.skipped,1);assert.equal(w.state.claimed,1);
 });
-function installUI({secure=false,editing=false}={}){
+function installUI({secure=false,editing=false,userAgent='Chrome Android',platform='',maxTouchPoints=0,standalone=false}={}){
   const windowEvents={},docEvents={},workerEvents={},nodes=new Map(),state={prompts:0,messages:0,reloads:0,confirm:true};
   const element=id=>{if(!nodes.has(id))nodes.set(id,{hidden:false,dataset:{},textContent:'',value:'',open:false,handlers:{},addEventListener(type,fn){this.handlers[type]=fn;},setAttribute(){},showModal(){this.open=true;},close(){this.open=false;}});return nodes.get(id);};
   const button=element('install'),card=element('card');
   const registration={waiting:{postMessage(){state.messages++;}},addEventListener(){}};
-  const navigator={userAgent:'Chrome Android',onLine:true};
+  const navigator={userAgent,platform,maxTouchPoints,standalone,onLine:true};
   if(secure)navigator.serviceWorker={controller:{},addEventListener:(t,h)=>workerEvents[t]=h,register:async()=>registration,ready:Promise.resolve()};
   const window={isSecureContext:secure,matchMedia:()=>({matches:false,addEventListener(){}}),addEventListener:(t,h)=>windowEvents[t]=h,confirm:()=>state.confirm};
   const document={documentElement:{dataset:{}},getElementById:element,querySelectorAll:selector=>selector==='[data-install],[data-install-card]'?[button,card]:selector==='[data-install]'?[button]:[],addEventListener:(t,h)=>docEvents[t]=h};
@@ -87,4 +87,13 @@ test('atualização também protege alterações nos formulários da coordenaç�
   const ui=installUI({secure:true});await ui.windowEvents.load();
   ui.docEvents.input();ui.state.confirm=false;
   ui.element('applyPwaUpdate').handlers.click();assert.equal(ui.state.messages,0);
+});
+
+test('iPhone e iPadOS mostram instruções específicas e não simulam instalação',async()=>{
+ for(const device of [{userAgent:'iPhone Safari'},{userAgent:'Safari',platform:'MacIntel',maxTouchPoints:5}]){
+  const ui=installUI(device);await ui.button.handlers.click();assert.equal(ui.element('installGuide').open,true);
+  assert.equal(ui.element('iosInstallSteps').hidden,false);assert.match(ui.element('installInstructions').textContent,/Safari/);
+  assert.equal(ui.state.prompts,0);assert.match(ui.button.textContent,/iPhone/);
+ }
+ const installed=installUI({userAgent:'iPhone Safari',standalone:true});assert.equal(installed.button.hidden,true);
 });

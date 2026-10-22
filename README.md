@@ -13,6 +13,20 @@ Sistema de avaliações, atividades e resumos. A interface funciona em GitHub Pa
 
 As opções menos usadas ficam em **Opções de questões e exportação**. Há recuperação de senha pelo e-mail cadastrado. O Firebase precisa estar acessível e com o provedor de e-mail/senha habilitado; a entrega dos e-mails depende da configuração do projeto.
 
+## Acesso, primeiro login e senha
+
+Contas criadas pela coordenação recebem `mustChangePassword: true`. No primeiro acesso, o painel e as consultas de alunos ficam suspensos até a pessoa confirmar a senha atual, escolher outra com pelo menos oito caracteres e salvar. A conta autentica novamente no Firebase antes de trocar a senha. O perfil só é liberado após a confirmação da troca e a gravação do marcador; se essa gravação falhar, o botão permite concluir sem trocar a senha novamente.
+
+No menu de professor ou coordenação, **Minha conta · alterar senha** permite trocar a senha depois. **Esqueci minha senha** envia a recuperação pelo Firebase em português, com confirmação na interface sem revelar se o e-mail existe. O recebimento exige que a caixa de e-mail exista e que o projeto permita o envio. Uma recuperação pela página padrão do Firebase não remove sozinha um marcador de primeiro acesso ainda pendente.
+
+O marcador é uma exigência do fluxo do aplicativo; as permissões efetivas do banco continuam sendo controladas pelas regras do Firebase. As regras devem permitir que cada usuário atualize apenas seus campos de senha (`mustChangePassword` e `senhaAlteradaEm`), preservando a proteção de papéis, turmas e demais registros. Não substitua as regras existentes por acesso público. Sua conferência e eventual implantação exigem acesso administrativo ao projeto.
+
+### Provisionamento administrativo
+
+`scripts/provisionar-acessos.cjs` prepara os perfis institucionais `admin@maximus.com.br` e `coordenação@maximus.com.br`. O primeiro recebe `nivelAcesso: administrador`; ambos usam o papel de gestão `coordenacao`, compatível com o sistema atual, e exigem troca de senha. O script preserva a senha de uma conta que já exista e atualiza somente os campos necessários do perfil.
+
+Execute-o apenas em um ambiente administrativo autenticado no projeto `siteoficial-2279a`, com o pacote oficial `firebase-admin` instalado. A entrada padrão recebe um JSON contendo `projectId`, `temporaryPassword` e, se necessário, `coordEmail`; a senha não tem valor padrão, não é gravada no repositório e não aparece na saída. O script não foi executado sem credenciais administrativas. Se o Firebase recusar o endereço com acentos, confirme com a escola um endereço válido antes de configurar outro e-mail; ele não é substituído automaticamente.
+
 ## Resumo do conteúdo
 
 Acesse **Resumo do conteúdo** na área do professor ou **Resumo de conteúdo · sem login** na entrada. Cole o material ou importe o conteúdo da avaliação, escolha curto, médio ou detalhado e gere o resumo. Edite livremente antes de copiar ou baixar PDF, DOCX ou TXT.
@@ -28,7 +42,7 @@ A interface prioriza celulares, com navegação inferior, menu lateral, campos l
 3. Se a janela não aparecer, use o menu **⋮ → Instalar aplicativo** ou **Adicionar à tela inicial**. Dentro de WhatsApp ou Instagram, escolha antes **Abrir no navegador**.
 4. Abra **Provas Máximu’s** pela tela inicial. O botão desaparece quando o sistema detecta a instalação.
 
-A confirmação da instalação depende do usuário e da disponibilidade do navegador. Não é necessário baixar APK ou ativar o modo desenvolvedor. Em iPhone/iPad, o guia orienta usar **Safari → Compartilhar → Adicionar à Tela de Início**.
+A confirmação da instalação depende do usuário e da disponibilidade do navegador. Não é necessário baixar APK ou ativar o modo desenvolvedor. Em iPhone/iPad, toque em **Instalar no iPhone/iPad** para ver o guia: **Safari → Compartilhar → Adicionar à Tela de Início → Abrir como App da Web → Adicionar**. Conforme a versão do iOS, Compartilhar pode ficar no Menu da Página. O sistema reconhece também iPads que se identificam como Mac e usa um ícone Apple de 180 × 180 pixels. A instalação exige esses toques no aparelho; o site não instala automaticamente.
 
 Após o primeiro carregamento completo com internet, o aplicativo mantém os arquivos públicos em cache. O resumo e suas exportações funcionam sem conexão; login, alunos, turmas, banco de questões e sincronização exigem internet. O cache não guarda respostas do Firebase nem dados de alunos. Não desinstale nem limpe os dados do navegador enquanto houver conteúdo não exportado.
 
@@ -92,12 +106,13 @@ Não é um modelo de linguagem generativo. O professor deve conferir o gabarito,
 
 ## Manutenção e testes
 
-Sem npm ou compilação para publicar. Mantenha juntos `index.html`, `styles.css`, `mobile.css`, `app.js`, `pedagogia.js`, `resumo.js`, `mobile.js`, `pwa.js`, `sw.js`, `manifest.webmanifest` e a pasta `icons/`. As bibliotecas de documentos e os modelos originais estão incorporados em `app.js`, com seus avisos de licença. Ao publicar outra versão, atualize os identificadores dos arquivos no HTML e no cache de `sw.js`, além de `VERSION`.
+Sem npm ou compilação para publicar. Mantenha juntos `index.html`, `styles.css`, `mobile.css`, `app.js`, `conta.js`, `pedagogia.js`, `resumo.js`, `mobile.js`, `pwa.js`, `sw.js`, `manifest.webmanifest` e a pasta `icons/`. As bibliotecas de documentos e os modelos originais estão incorporados em `app.js`, com seus avisos de licença. Ao publicar outra versão, atualize os identificadores dos arquivos no HTML e no cache de `sw.js`, além de `VERSION`.
 
 ```sh
 node --check app.js
 node --check pedagogia.js
 node --check resumo.js
+node --check conta.js
 node --check mobile.js
 node --check pwa.js
 node --check sw.js

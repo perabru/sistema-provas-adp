@@ -1,14 +1,14 @@
 /* Cache público do aplicativo. Não armazena respostas do Firebase nem dados dos alunos. */
 'use strict';
-const VERSION='mobile-20261022-v2';
+const VERSION='contas-ios-20261022-v3';
 const BASE=new URL('./',self.location.href);
 const PREFIX='maximus-shell-'+BASE.pathname+'-';
 const CACHE=PREFIX+VERSION;
 const SHELL=[
-  './index.html','./styles.css?v=20261022-mobile2','./mobile.css?v=20261022-mobile2',
-  './pedagogia.js?v=20261022-mobile2','./app.js?v=20261022-mobile2','./resumo.js?v=20261022-mobile2',
-  './mobile.js?v=20261022-mobile2','./pwa.js?v=20261022-mobile2',
-  './manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png','./icons/maskable-512.png'
+  './index.html','./styles.css?v=20261022-contas3','./mobile.css?v=20261022-contas3',
+  './conta.js?v=20261022-contas3','./pedagogia.js?v=20261022-contas3','./app.js?v=20261022-contas3','./resumo.js?v=20261022-contas3',
+  './mobile.js?v=20261022-contas3','./pwa.js?v=20261022-contas3',
+  './manifest.webmanifest','./icons/apple-touch-icon.png','./icons/icon-192.png','./icons/icon-512.png','./icons/maskable-512.png'
 ].map(path=>new URL(path,BASE).href);
 const ALLOWED=new Set(SHELL);
 const INDEX=new URL('./index.html',BASE).href;

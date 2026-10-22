@@ -2,6 +2,7 @@
   'use strict';
   const $=id=>document.getElementById(id);
   const mode=window.matchMedia('(display-mode: standalone)');
+  const ios=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
   let promptEvent=null,installed=mode.matches||navigator.standalone===true,registration=null,reloading=false,formEdited=false;
   const message=text=>{const status=$('pwaStatus');if(status)status.textContent=text;};
   function render(){
@@ -10,16 +11,18 @@
     document.querySelectorAll('[data-install]').forEach(el=>{
       el.dataset.ready=String(Boolean(promptEvent));
       el.setAttribute('aria-label',promptEvent?'Instalar aplicativo':'Ver como instalar o aplicativo');
+      if(ios)el.textContent='Instalar no iPhone/iPad';
     });
   }
   function openGuide(){
     const guide=$('installGuide');if(!guide)return;
-    const ios=/iPad|iPhone|iPod/.test(navigator.userAgent);
     const android=/Android/.test(navigator.userAgent);
+    if($('iosInstallSteps'))$('iosInstallSteps').hidden=!ios;
     $('installInstructions').textContent=ios
-      ?'Abra este site no Safari. Toque em Compartilhar e depois em Adicionar à Tela de Início. Confirme em Adicionar.'
+      ?'No iPhone e no iPad, adicione o aplicativo pelo menu do Safari. Siga os passos abaixo; a confirmação acontece no seu aparelho.'
       :android?'Abra este site no Chrome do Android. Toque no menu ⋮ e escolha Instalar aplicativo ou Adicionar à tela inicial. Se estiver dentro do WhatsApp ou Instagram, use Abrir no navegador primeiro.'
       :'No Chrome ou Edge, use o ícone de instalação na barra de endereço ou a opção Instalar aplicativo no menu do navegador. Se a opção não aparecer, continue usando o site normalmente.';
+    if($('installPlatformNote'))$('installPlatformNote').textContent=ios?'Se a opção não aparecer, procure Editar Ações no menu Compartilhar. O ícone Provas Máximu’s ficará na Tela de Início.':'A instalação é confirmada no seu dispositivo. Se já instalou, abra Provas Máximu’s pela tela inicial.';
     if(!guide.open)guide.showModal();
   }
   async function install(){

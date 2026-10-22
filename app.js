@@ -4417,7 +4417,7 @@ len1=val.length;len1>k;k++)item=val[k],childNode={},childNode[key]=item,lastChil
     const map = {
       'auth/invalid-email':'E-mail inválido.', 'auth/user-not-found':'Usuário não encontrado.', 'auth/wrong-password':'Senha incorreta.',
       'auth/invalid-credential':'E-mail ou senha incorretos.', 'auth/email-already-in-use':'Este e-mail já está cadastrado.',
-      'auth/operation-not-allowed':'Habilite E-mail/senha em Firebase → Authentication → Método de login.', 'auth/admin-restricted-operation':'O cadastro de contas está restrito no Firebase. Crie a conta em Authentication.', 'permission-denied':'Permissão negada no banco de dados. Publique as regras do sistema e tente novamente.', 'auth/weak-password':'A senha precisa ter pelo menos 6 caracteres.', 'auth/network-request-failed':'Falha de conexão. Verifique a internet.',
+      'auth/operation-not-allowed':'Habilite E-mail/senha em Firebase → Authentication → Método de login.', 'auth/admin-restricted-operation':'O cadastro de contas está restrito no Firebase. Crie a conta em Authentication.', 'permission-denied':'Permissão negada no banco de dados. Publique as regras do sistema e tente novamente.', 'auth/requires-recent-login':'Entre novamente e confirme sua senha atual para continuar.', 'auth/too-many-requests':'Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.', 'auth/password-does-not-meet-requirements':'A nova senha precisa atender à política configurada no Firebase.', 'auth/weak-password':'A senha não atende à política de segurança do Firebase.', 'auth/network-request-failed':'Falha de conexão. Verifique a internet.',
       'PERMISSION_DENIED':'Permissão negada no banco de dados. Publique as regras do sistema e tente novamente.'
     };
     return map[code] || map[String(code)] || error?.message || 'Erro inesperado.';
@@ -6499,11 +6499,16 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
   }
   async function finishAuthentication(user,version){
     try{
-      const profile=await getProfile(user);if(version!==authenticationVersion)return;
+      let profile=await getProfile(user);if(version!==authenticationVersion)return;
       if(!profile||profile.ativo===false||!['coordenacao','professor'].includes(profile.role)){
         const target=page==='admin'?'adminLoginMsg':'profLoginMsg';await auth.signOut();setMsg(target,'Seu acesso não está ativo. Procure a coordenação.','error');return;
       }
       currentUser=user;currentProfile=profile;
+      if(window.MaximusAccount.needsChange(profile)){
+        profile=await window.MaximusAccount.requireChange(user,profile);
+        if(!profile||version!==authenticationVersion||auth.currentUser?.uid!==user.uid)return;
+        currentProfile=profile;
+      }
       if(profile.role==='coordenacao'){showAdminApp();startAdminRealtime();}else{showProfApp();startProfessorRealtime();}
       watchSessionProfile(user);
     }catch(error){
@@ -6516,7 +6521,7 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
   let managementMutationInFlight=false,accountCreationInFlight=false,permissionMigration=null;
 
   function requireCoordinator(){
-    if(!currentUser||auth.currentUser?.uid!==currentUser.uid||currentProfile?.role!=='coordenacao'||currentProfile.ativo===false)throw new Error('Entre com um acesso de coordenação.');
+    if(!currentUser||auth.currentUser?.uid!==currentUser.uid||currentProfile?.role!=='coordenacao'||currentProfile.ativo===false||window.MaximusAccount.needsChange(currentProfile))throw new Error('Entre com um acesso de coordenação.');
     if(!connectionReady)throw new Error('Sem conexão. Tente novamente quando a internet voltar.');
   }
   function activeClassList(registry=turmaRegistry,students=alunosCache,teachers=allProfessoresCache){
@@ -6556,7 +6561,7 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
   }
   function renderCoordenadoresTabela(){
     const table=$('coordenadoresTabela');if(!table)return;
-    table.innerHTML=coordenadoresCache.map(p=>`<tr><td>${escapeHtml(p.nome)}</td><td>${escapeHtml(p.email)}</td><td><span class="user-status">${p.id===currentUser?.uid?'Você':'Coordenação'}</span></td></tr>`).join('')||'<tr><td colspan="3">Nenhum coordenador cadastrado.</td></tr>';
+    table.innerHTML=coordenadoresCache.map(p=>`<tr><td>${escapeHtml(p.nome)}</td><td>${escapeHtml(p.email)}</td><td><span class="user-status">${p.id===currentUser?.uid?'Você · ':''}${p.nivelAcesso==='administrador'?'Administrador':'Coordenação'}</span></td></tr>`).join('')||'<tr><td colspan="3">Nenhum coordenador cadastrado.</td></tr>';
   }
   function renderTurmasCheckboxes(){
     const box=$('turmasCheckboxes');if(!box)return;
@@ -6665,7 +6670,7 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
       try{const credential=await secondary.createUserWithEmailAndPassword(email,password);createdUser=credential.user;createdFresh=true;}
       catch(error){if(error.code!=='auth/email-already-in-use')throw error;const credential=await secondary.signInWithEmailAndPassword(email,password);createdUser=credential.user;const existing=(await db.ref('usuarios/'+createdUser.uid).once('value')).val();if(existing)throw error;}
       requireCoordinator();if(currentUser.uid!==owner)throw new Error('O acesso mudou. Entre novamente.');
-      const profile={role,nome,email,ativo:true,criadoEm:nowIso()},updates={};
+      const profile={role,nome,email,ativo:true,mustChangePassword:true,criadoEm:nowIso()},updates={};
       if(role==='professor'){profile.turmas=turmas;profile.turmasAcesso=Object.fromEntries(turmas.map(t=>[C.classKey(t),true]));appendClassRegistration(updates,turmas);}
       updates['usuarios/'+createdUser.uid]=profile;await sendManagementUpdates(updates);profileSaved=true;await audit('cadastro_'+role,{uid:createdUser.uid,email});return createdUser.uid;
     }catch(error){
@@ -6722,6 +6727,7 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
     sessionProfileRef.on('value',snapshot=>{
       if(currentUser?.uid!==user.uid)return;const profile=snapshot.val();
       if(!profile||profile.ativo===false||profile.role!==currentProfile?.role){const target=page==='admin'?'adminLoginMsg':'profLoginMsg';auth.signOut().then(()=>setMsg(target,'Seu acesso foi removido. Procure a coordenação.','error'));return;}
+      if(window.MaximusAccount.needsChange(profile)&&!window.MaximusAccount.needsChange(currentProfile)){const version=++authenticationVersion;clearSession();finishAuthentication(user,version);return;}
       const changed=JSON.stringify(profile.turmas||[])!==JSON.stringify(currentProfile.turmas||[])||JSON.stringify(profile.turmasAcesso||{})!==JSON.stringify(currentProfile.turmasAcesso||{});
       currentProfile=profile;
       if(page==='professor'&&changed){alunosCache=[];alunoSelecionado=null;setEditorContent('');invalidatePreview();startProfessorRealtime();}
@@ -6755,6 +6761,7 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
     $(role==='admin'?'adminAppView':'appView')?.classList.remove('hidden');
   }
   function clearSession(){
+    window.MaximusAccount.reset();
     clearManagedSession();
     detachListeners();closeHamburgerMenu($('appView'));closeHamburgerMenu($('adminAppView'));
     currentUser=null;currentProfile=null;alunosCache=[];professoresCache=[];turmasCache=[];colunasCache=[];bancoQuestoesCache=[];alunoSelecionado=null;editAlunoId=null;
@@ -6767,12 +6774,13 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
     $('editModal')?.classList.add('hidden');
     $('professorForm')?.reset();$('alunoManualForm')?.reset();$('ruleForm')?.reset();
   }
+  window.MaximusAccount.init({auth,db,credential:(email,password)=>firebase.auth.EmailAuthProvider.credential(email,password),profile:()=>currentProfile,errorMessage:firebaseError,onChanged:update=>{if(currentProfile)currentProfile={...currentProfile,...update};}});
   setupPasswordEyes();setupHamburgerMenus();setupAdmin();setupProfessor();setupManagement();
   document.querySelectorAll('[data-reset-password]').forEach(button=>button.addEventListener('click',async()=>{
     const admin=button.dataset.resetPassword==='admin',target=admin?'adminLoginMsg':'profLoginMsg';
     const email=norm($(admin?'adminEmail':'profEmail').value);
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){setMsg(target,'Informe seu e-mail no campo de acesso para receber o link de redefinição.','error');return;}
-    try{await withBusyState(button,'Enviando...',()=>auth.sendPasswordResetEmail(email));setMsg(target,'Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha. Confira também o spam.','ok');}catch(error){setMsg(target,firebaseError(error),'error');}
+    try{const text=await withBusyState(button,'Enviando...',()=>window.MaximusAccount.sendRecovery(auth,email));setMsg(target,text,'ok');}catch(error){setMsg(target,firebaseError(error),'error');}
   }));
   document.querySelectorAll('[data-access-page]').forEach(link=>link.addEventListener('click',event=>{
     event.preventDefault();if(auth.currentUser)return;

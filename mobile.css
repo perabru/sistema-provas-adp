@@ -193,3 +193,10 @@
   .paper-preview>.paper{zoom:1!important}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.app .sidebar{transition:none}}
+.account-email{font-size:14px;overflow-wrap:anywhere;color:var(--blue);font-weight:700}
+.password-fields{display:grid;gap:16px;min-width:0}
+.account-card header h1{font-size:25px;line-height:1.25;margin:10px 0}
+.account-card .message{white-space:pre-line;overflow-wrap:anywhere}
+.account-card .form-grid{margin:18px 0}
+.ios-install-steps{padding-left:24px;display:grid;gap:14px;line-height:1.6;font-size:15px}
+@media screen and (max-width:420px){.mobile-appbar [data-install]{font-size:11px;max-width:110px}.mobile-brand img{display:none}.mobile-brand strong{font-size:12px}}
