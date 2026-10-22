@@ -30,7 +30,7 @@ test('prepara os arquivos públicos e mantém o resumo disponível offline',asyn
   w.state.fail=true;
   const page=await w.request('https://perabru.github.io/sistema-provas-adp/?source=pwa',{mode:'navigate'});
   assert.equal(page.cached,'https://perabru.github.io/sistema-provas-adp/index.html');
-  const summary=await w.request('https://perabru.github.io/sistema-provas-adp/resumo.js?v=20261022-contas3');
+  const summary=await w.request('https://perabru.github.io/sistema-provas-adp/resumo.js?v=20261022-firebase4');
   assert.match(summary.cached,/resumo\.js/);
 });
 test('uma versão pendente não mistura HTML novo com scripts antigos',async()=>{

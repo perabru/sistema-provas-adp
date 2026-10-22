@@ -1,13 +1,13 @@
 /* Cache público do aplicativo. Não armazena respostas do Firebase nem dados dos alunos. */
 'use strict';
-const VERSION='contas-ios-20261022-v3';
+const VERSION='firebase-config-20261022-v4';
 const BASE=new URL('./',self.location.href);
 const PREFIX='maximus-shell-'+BASE.pathname+'-';
 const CACHE=PREFIX+VERSION;
 const SHELL=[
-  './index.html','./styles.css?v=20261022-contas3','./mobile.css?v=20261022-contas3',
-  './conta.js?v=20261022-contas3','./pedagogia.js?v=20261022-contas3','./app.js?v=20261022-contas3','./resumo.js?v=20261022-contas3',
-  './mobile.js?v=20261022-contas3','./pwa.js?v=20261022-contas3',
+  './index.html','./styles.css?v=20261022-firebase4','./mobile.css?v=20261022-firebase4',
+  './conta.js?v=20261022-firebase4','./pedagogia.js?v=20261022-firebase4','./app.js?v=20261022-firebase4','./resumo.js?v=20261022-firebase4',
+  './mobile.js?v=20261022-firebase4','./pwa.js?v=20261022-firebase4',
   './manifest.webmanifest','./icons/apple-touch-icon.png','./icons/icon-192.png','./icons/icon-512.png','./icons/maskable-512.png'
 ].map(path=>new URL(path,BASE).href);
 const ALLOWED=new Set(SHELL);

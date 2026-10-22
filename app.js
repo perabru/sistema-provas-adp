@@ -4355,7 +4355,7 @@ len1=val.length;len1>k;k++)item=val[k],childNode={},childNode[key]=item,lastChil
     projectId: "siteoficial-2279a",
     storageBucket: "siteoficial-2279a.firebasestorage.app",
     messagingSenderId: "721321459160",
-    appId: "1:721321459160:web:fe24a5fdfebbaffccf06ad"
+    appId: "1:721321459160:web:5ae7ec1c8c1042d4cf06ad"
   };
 
   if (location.protocol === 'file:') {
