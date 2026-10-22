@@ -60,7 +60,7 @@
     const observer=new IntersectionObserver(entries=>{
       const entry=entries.filter(e=>e.isIntersecting&&!e.target.closest('.app')?.classList.contains('hidden')).sort((a,b)=>b.intersectionRatio-a.intersectionRatio)[0];if(entry)activeSection(entry.target.id);
     },{rootMargin:'-10% 0px -60% 0px',threshold:0});
-    ['workspace','orientacoes','preview','painel','alunos','turmas'].forEach(id=>{const el=$(id);if(el)observer.observe(el);});
+    ['workspace','orientacoes','preview','painel','professores','alunos','turmas','vinculos'].forEach(id=>{const el=$(id);if(el)observer.observe(el);});
   }
   activeSection(location.hash.slice(1)||'workspace');
 })();

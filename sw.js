@@ -1,13 +1,13 @@
 /* Cache público do aplicativo. Não armazena respostas do Firebase nem dados dos alunos. */
 'use strict';
-const VERSION='planilhas-20261022-v1';
+const VERSION='gestao-manual-20261022-v2';
 const BASE=new URL('./',self.location.href);
 const PREFIX='maximus-shell-'+BASE.pathname+'-';
 const CACHE=PREFIX+VERSION;
 const SHELL=[
-  './index.html','./styles.css?v=20261022-planilhas1','./mobile.css?v=20261022-planilhas1',
-  './planilhas.js?v=20261022-planilhas1','./conta.js?v=20261022-planilhas1','./pedagogia.js?v=20261022-planilhas1','./app.js?v=20261022-planilhas1','./resumo.js?v=20261022-planilhas1',
-  './mobile.js?v=20261022-planilhas1','./pwa.js?v=20261022-planilhas1',
+  './index.html','./styles.css?v=20261022-gestao2','./mobile.css?v=20261022-gestao2',
+  './gestao.js?v=20261022-gestao2','./planilhas.js?v=20261022-gestao2','./conta.js?v=20261022-gestao2','./pedagogia.js?v=20261022-gestao2','./app.js?v=20261022-gestao2','./resumo.js?v=20261022-gestao2',
+  './mobile.js?v=20261022-gestao2','./pwa.js?v=20261022-gestao2',
   './manifest.webmanifest','./icons/apple-touch-icon.png','./icons/icon-192.png','./icons/icon-512.png','./icons/maskable-512.png'
 ].map(path=>new URL(path,BASE).href);
 const ALLOWED=new Set(SHELL);

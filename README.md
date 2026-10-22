@@ -96,6 +96,16 @@ O gerador cria exercícios de completar frases e perguntas discursivas com base 
 
 Não é um modelo de linguagem generativo. O professor deve conferir o gabarito, a qualidade dos distratores, a dificuldade, a cobertura dos assuntos e o valor da avaliação, especialmente quando houver redução de questões.
 
+## Gestão manual
+
+A coordenação usa uma área por vez, com atalhos no início e navegação por Professores, Turmas e Associar turmas. Importação, alunos, coordenadores, adaptações e backup continuam disponíveis.
+
+1. **Cadastrar professor:** informe nome, e-mail e senha inicial. É possível cadastrar sem turma e definir os vínculos depois; a troca de senha continua obrigatória no primeiro acesso.
+2. **Criar turma:** digite o nome em Turmas e salve. A importação por planilha é uma opção adicional.
+3. **Associar turmas:** escolha um professor ativo, marque as turmas e salve. Também há um botão Associar turmas em cada professor cadastrado. A seleção substitui os vínculos desse professor, mantendo sincronizados `turmas` e `turmasAcesso`. Retirar todos os vínculos pede confirmação na interface.
+
+Os vínculos são conferidos novamente no Firebase antes de salvar. Professores inativos, turmas removidas e alterações concorrentes dos vínculos bloqueiam a gravação até a coordenação recarregar os dados. A associação altera somente os vínculos do professor; não altera contas, papéis ou alunos. As permissões administrativas existentes do Firebase continuam necessárias.
+
 ## Importação e dados
 
 - Em **Coordenação → Turmas → Selecionar planilha** (ou **Importar planilhas**), envie XLSX, XLS, XLSM, XLSB, ODS, CSV ou TSV, até 25 MB. Não é necessário usar um modelo fixo.
@@ -110,11 +120,12 @@ Não é um modelo de linguagem generativo. O professor deve conferir o gabarito,
 
 ## Manutenção e testes
 
-Sem npm ou compilação para publicar. Mantenha juntos `index.html`, `styles.css`, `mobile.css`, `app.js`, `conta.js`, `planilhas.js`, `pedagogia.js`, `resumo.js`, `mobile.js`, `pwa.js`, `sw.js`, `manifest.webmanifest` e a pasta `icons/`. As bibliotecas de documentos e os modelos originais estão incorporados em `app.js`, com seus avisos de licença. Ao publicar outra versão, atualize os identificadores dos arquivos no HTML e no cache de `sw.js`, além de `VERSION`.
+Sem npm ou compilação para publicar. Mantenha juntos `index.html`, `styles.css`, `mobile.css`, `app.js`, `conta.js`, `planilhas.js`, `gestao.js`, `pedagogia.js`, `resumo.js`, `mobile.js`, `pwa.js`, `sw.js`, `manifest.webmanifest` e a pasta `icons/`. As bibliotecas de documentos e os modelos originais estão incorporados em `app.js`, com seus avisos de licença. Ao publicar outra versão, atualize os identificadores dos arquivos no HTML e no cache de `sw.js`, além de `VERSION`.
 
 ```sh
 node --check app.js
 node --check planilhas.js
+node --check gestao.js
 node --check pedagogia.js
 node --check resumo.js
 node --check conta.js

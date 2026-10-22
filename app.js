@@ -4875,14 +4875,14 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
 
   function renderAdmin(){
     if(!$('adminAppView') || $('adminAppView').classList.contains('hidden')) return;
-    $('adminResumo').textContent = `Logado como ${currentProfile?.nome || currentProfile?.email}. Dados sincronizados em tempo real.`;
+    $('adminResumo').textContent = `Logado como ${currentProfile?.nome || currentProfile?.email}.`;
     $('statAlunos').textContent=alunosCache.length; $('statTurmas').textContent=turmasCache.length; $('statProfessores').textContent=professoresCache.length; $('statColunas').textContent=colunasCache.length;
     migratePermissions(); renderManagement(); renderTurmasCheckboxes(); renderTurmasDatalist(); renderProfessoresTabela(); renderColunas(); renderAlunosTable();
   }
 
   function renderTurmasCheckboxesLegacy(){ const box=$('turmasCheckboxes'); if(!box)return; if(!turmasCache.length){ box.innerHTML='<p class="muted">Importe a planilha de alunos para carregar as turmas.</p>'; return; } box.innerHTML=turmasCache.map(t=>`<label><input type="checkbox" value="${escapeHtml(t)}"> ${escapeHtml(t)}</label>`).join(''); }
   function renderTurmasDatalist(){ const list=$('turmasDatalist'); if(!list)return; list.innerHTML=turmasCache.map(t=>`<option value="${escapeHtml(t)}"></option>`).join(''); }
-  function renderProfessoresTabelaLegacy(){ const tb=$('professoresTabela'); if(!tb)return; tb.innerHTML=professoresCache.map(p=>`<tr><td>${escapeHtml(p.nome)}</td><td>${escapeHtml(p.email)}</td><td>${escapeHtml((p.turmas||[]).join(', '))}</td><td><button class="btn danger" data-del-prof="${p.id}">Remover perfil</button></td></tr>`).join('') || '<tr><td colspan="4">Nenhum professor cadastrado.</td></tr>'; tb.querySelectorAll('[data-del-prof]').forEach(btn=>btn.addEventListener('click', async()=>{ if(!confirm('Remover o perfil deste professor do sistema? Se desejar apagar completamente o acesso, exclua também o usuário no painel do projeto.'))return; await db.ref('usuarios/'+btn.dataset.delProf).remove(); await audit('remover_perfil_professor',{uid:btn.dataset.delProf}); })); }
+  function renderProfessoresTabelaLegacy(){ const tb=$('professoresTabela'); if(!tb)return; tb.innerHTML=professoresCache.map(p=>`<tr><td>${escapeHtml(p.nome)}</td><td data-label="E-mail">${escapeHtml(p.email)}</td><td data-label="Turmas">${escapeHtml((p.turmas||[]).join(', '))}</td><td><button class="btn danger" data-del-prof="${p.id}">Remover perfil</button></td></tr>`).join('') || '<tr><td colspan="4">Nenhum professor cadastrado.</td></tr>'; tb.querySelectorAll('[data-del-prof]').forEach(btn=>btn.addEventListener('click', async()=>{ if(!confirm('Remover o perfil deste professor do sistema? Se desejar apagar completamente o acesso, exclua também o usuário no painel do projeto.'))return; await db.ref('usuarios/'+btn.dataset.delProf).remove(); await audit('remover_perfil_professor',{uid:btn.dataset.delProf}); })); }
   function renderColunas(){ const box=$('colunasLidas'); if(!box)return; box.innerHTML=colunasCache.slice(0,120).map(c=>`<span>${escapeHtml(c)}</span>`).join('') + (colunasCache.length>120?`<span>+${colunasCache.length-120}</span>`:''); }
   function getAlunoValue(a,c){ return a[c] ?? a.dadosCompletos?.[c] ?? ''; }
   function renderAlunosTable(){ const table=$('alunosTabela'); if(!table)return; const q=lower($('buscaAlunos')?.value||''); const cols=['nome','turma','numero','diagnostico','adaptacao','tipoProva','orientacoes',...colunasCache.filter(c=>!['nome','turma'].includes(lower(c))).slice(0,25)]; const unique=Array.from(new Set(cols)); const rows=alunosCache.filter(a=>!q || lower(JSON.stringify(a)).includes(q)).sort((a,b)=>norm(a.nome).localeCompare(norm(b.nome),'pt-BR')); table.innerHTML=`<thead><tr>${unique.map(c=>`<th>${escapeHtml(c)}</th>`).join('')}<th>Ações</th></tr></thead><tbody>${rows.map(a=>`<tr>${unique.map(c=>`<td>${escapeHtml(getAlunoValue(a,c))}</td>`).join('')}<td><button class="btn light" data-edit-aluno="${a.id}">Editar</button></td></tr>`).join('') || `<tr><td colspan="${unique.length+1}">Nenhum aluno encontrado.</td></tr>`}</tbody>`; table.querySelectorAll('[data-edit-aluno]').forEach(btn=>btn.addEventListener('click',()=>openEditAluno(btn.dataset.editAluno))); }
@@ -6407,6 +6407,7 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
   let turmaRegistry={},allProfessoresCache=[],coordenadoresCache=[],sessionProfileRef=null;
   let editingClassKey=null,removingClassKey=null,editingProfessorId=null;
   let managementMutationInFlight=false,accountCreationInFlight=false,permissionMigration=null;
+  let associationState={teacherId:'',baseline:[],dirty:false,busy:false};
 
   function requireCoordinator(){
     if(!currentUser||auth.currentUser?.uid!==currentUser.uid||currentProfile?.role!=='coordenacao'||currentProfile.ativo===false||window.MaximusAccount.needsChange(currentProfile))throw new Error('Entre com um acesso de coordenação.');
@@ -6439,11 +6440,11 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
     const [classes,students,users]=await Promise.all([db.ref('configuracao/turmas').once('value'),db.ref('alunos').once('value'),db.ref('usuarios').once('value')]);
     return {registry:classes.val()||{},students:Object.entries(students.val()||{}).map(([id,a])=>({id,...a})),teachers:Object.entries(users.val()||{}).filter(([,p])=>p.role==='professor').map(([id,p])=>({id,...p}))};
   }
-  function renderManagement(){renderTurmasTabela();renderCoordenadoresTabela();}
+  function renderManagement(){renderTurmasTabela();renderCoordenadoresTabela();renderAssociacoes();}
   function renderTurmasTabela(){
     const table=$('turmasTabela');if(!table)return;
     const classes=activeClassList();$('turmasResumo').textContent=classes.length+' turma(s)';
-    table.innerHTML=classes.map(t=>`<tr><td><strong>${escapeHtml(t.nome)}</strong></td><td>${alunosCache.filter(a=>C.classKey(a.turma)===t.key).length}</td><td>${professoresCache.filter(p=>(p.turmas||[]).some(n=>C.classKey(n)===t.key)).length}</td><td><div class="row-actions"><button class="btn light" type="button" data-edit-class="${t.key}">Editar</button><button class="btn danger" type="button" data-delete-class="${t.key}">Remover</button></div></td></tr>`).join('')||'<tr><td colspan="4">Nenhuma turma cadastrada.</td></tr>';
+    table.innerHTML=classes.map(t=>`<tr><td data-label="Turma"><strong>${escapeHtml(t.nome)}</strong></td><td data-label="Alunos">${alunosCache.filter(a=>C.classKey(a.turma)===t.key).length}</td><td data-label="Professores">${professoresCache.filter(p=>(p.turmas||[]).some(n=>C.classKey(n)===t.key)).length}</td><td><div class="row-actions"><button class="btn light" type="button" data-edit-class="${t.key}">Editar</button><button class="btn danger" type="button" data-delete-class="${t.key}">Remover</button></div></td></tr>`).join('')||'<tr><td colspan="4">Nenhuma turma cadastrada.</td></tr>';
     table.querySelectorAll('[data-edit-class]').forEach(btn=>btn.addEventListener('click',()=>{const item=activeClassList().find(t=>t.key===btn.dataset.editClass);if(!item)return;editingClassKey=item.key;$('editarTurmaNome').value=item.nome;setMsg('editarTurmaMsg','');$('editarTurmaDialog').showModal();}));
     table.querySelectorAll('[data-delete-class]').forEach(btn=>btn.addEventListener('click',()=>openClassRemoval(btn.dataset.deleteClass)));
   }
@@ -6460,10 +6461,51 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
     const table=$('professoresTabela');if(!table)return;
     const mode=$('profStatusFilter')?.value||'ativos';
     const list=allProfessoresCache.filter(p=>mode==='todos'||(mode==='removidos'?p.ativo===false:p.ativo!==false));
-    table.innerHTML=list.map(p=>`<tr><td>${escapeHtml(p.nome)}${p.ativo===false?'<span class="removed-label">Removido</span>':''}</td><td>${escapeHtml(p.email)}</td><td>${escapeHtml((p.turmas||[]).join(', '))||'—'}</td><td><div class="row-actions">${p.ativo===false?`<button class="btn light" type="button" data-restore-prof="${escapeHtml(p.id)}">Restaurar</button>`:`<button class="btn light" type="button" data-edit-prof="${escapeHtml(p.id)}">Editar</button><button class="btn danger" type="button" data-del-prof="${escapeHtml(p.id)}">Remover professor</button>`}</div></td></tr>`).join('')||'<tr><td colspan="4">Nenhum professor encontrado.</td></tr>';
+    table.innerHTML=list.map(p=>`<tr><td data-label="Professor">${escapeHtml(p.nome)}${p.ativo===false?'<span class="removed-label">Removido</span>':''}</td><td data-label="E-mail">${escapeHtml(p.email)}</td><td data-label="Turmas">${escapeHtml((p.turmas||[]).join(', '))||'—'}</td><td><div class="row-actions">${p.ativo===false?`<button class="btn light" type="button" data-restore-prof="${escapeHtml(p.id)}">Restaurar</button>`:`<button class="btn light" type="button" data-edit-prof="${escapeHtml(p.id)}">Editar</button><button class="btn secondary" type="button" data-link-prof="${escapeHtml(p.id)}">Associar turmas</button><button class="btn danger" type="button" data-del-prof="${escapeHtml(p.id)}">Remover professor</button>`}</div></td></tr>`).join('')||'<tr><td colspan="4">Nenhum professor encontrado.</td></tr>';
     table.querySelectorAll('[data-del-prof]').forEach(btn=>btn.addEventListener('click',()=>removeProfessor(btn.dataset.delProf,btn)));
     table.querySelectorAll('[data-edit-prof]').forEach(btn=>btn.addEventListener('click',()=>openProfessorEdit(btn.dataset.editProf)));
+    table.querySelectorAll('[data-link-prof]').forEach(btn=>btn.addEventListener('click',()=>{renderAssociacoes(btn.dataset.linkProf,true);window.MaximusManagement.navigate('vinculos');}));
     table.querySelectorAll('[data-restore-prof]').forEach(btn=>btn.addEventListener('click',()=>restoreProfessor(btn.dataset.restoreProf,btn)));
+  }
+  function renderAssociacoes(preferredId,force=false){
+    const select=$('associacaoProfessor'),box=$('associacaoTurmas');if(!select||!box)return;
+    const id=preferredId===undefined?(select.value||associationState.teacherId):preferredId;
+    const previous=associationState.teacherId,dirty=associationState.dirty&&id===previous&&!force;
+    const checked=dirty?[...box.querySelectorAll('input:checked')].map(i=>i.value):null;
+    const teachers=professoresCache.slice().sort((a,b)=>(a.nome||a.email).localeCompare(b.nome||b.email,'pt-BR'));
+    select.innerHTML='<option value="">Selecione um professor</option>'+teachers.map(p=>`<option value="${escapeHtml(p.id)}">${escapeHtml(p.nome||p.email)} · ${escapeHtml(p.email)}</option>`).join('');
+    const profile=teachers.find(p=>p.id===id);select.value=profile?id:'';select.disabled=associationState.busy;
+    if(!profile){
+      associationState.teacherId='';associationState.baseline=[];associationState.dirty=false;
+      box.innerHTML=`<p class="muted">${teachers.length?'Selecione um professor para ver as turmas.':'Cadastre um professor para começar.'}</p>`;
+      $('salvarAssociacao').disabled=true;$('associacaoResumo').textContent='';
+      if(id)setMsg('associacaoMsg','Esse professor não está mais ativo. Selecione outro professor.','error');return;
+    }
+    const keys=new Set(checked||(profile.turmas||[]).map(C.classKey)),classes=activeClassList();
+    associationState.teacherId=id;associationState.dirty=dirty;
+    if(!dirty)associationState.baseline=(profile.turmas||[]).map(C.classKey);
+    const missing=[...keys].some(key=>!classes.some(t=>t.key===key));
+    box.innerHTML=classes.map(t=>`<label><input type="checkbox" value="${t.key}" ${keys.has(t.key)?'checked':''} ${associationState.busy?'disabled':''}> ${escapeHtml(t.nome)}</label>`).join('')||'<p class="muted">Crie uma turma para associá-la ao professor.</p>';
+    $('salvarAssociacao').disabled=associationState.busy||missing;
+    $('recarregarAssociacao').disabled=associationState.busy;
+    $('associacaoResumo').textContent=keys.size?`${keys.size} turma(s) selecionada(s). O professor terá acesso apenas às turmas marcadas.`:'Sem turmas selecionadas. O professor pode entrar, mas não terá acesso aos alunos.';
+    if(missing)setMsg('associacaoMsg','Uma turma selecionada foi removida. Recarregue os vínculos antes de continuar.','error');
+  }
+  async function salvarAssociacao(event){
+    event.preventDefault();if(associationState.busy)return;
+    const actor=currentUser?.uid,id=$('associacaoProfessor').value,selected=[...$('associacaoTurmas').querySelectorAll('input:checked')].map(i=>i.value),baseline=[...associationState.baseline];
+    if(!id){setMsg('associacaoMsg','Selecione um professor.','error');return;}
+    if(!selected.length&&baseline.length&&!confirm('Retirar todas as turmas deste professor? Ele ficará sem acesso aos alunos até receber novos vínculos.'))return;
+    associationState.busy=true;renderAssociacoes(id);
+    const ok=await runManagementChange(event.submitter,'associacaoMsg','Salvando vínculos...',()=>exclusiveClassChange(async()=>{
+      const data=await managementSnapshot(),teacher=data.teachers.find(p=>p.id===id),classes=activeClassList(data.registry,data.students,data.teachers);
+      const plan=window.MaximusManagement.associationPlan(teacher,classes,selected,baseline,C.classKey);
+      if(currentUser?.uid!==actor)throw new Error('A sessão mudou. Entre novamente antes de salvar os vínculos.');
+      await sendManagementUpdates(plan.updates);await audit('associar_professor_turmas',{uid:id,turmas:plan.names});
+    }));
+    associationState.busy=false;
+    if(ok){associationState.dirty=false;renderAssociacoes(id,true);setMsg('associacaoMsg','Vínculos salvos. O acesso do professor foi atualizado.','ok');}
+    else renderAssociacoes();
   }
   async function runManagementChange(button,messageId,label,action){
     const dialog=button?.closest('dialog'),closers=[...(dialog?.querySelectorAll('[data-close-dialog]')||[])];
@@ -6552,6 +6594,7 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
   async function createManagedAccount({role,nome,email,password,turmas=[]}){
     requireCoordinator();if(accountCreationInFlight)throw new Error('Aguarde o cadastro em andamento.');
     if(!nome||nome.length>100)throw new Error('Informe um nome com até 100 caracteres.');
+    if(turmas.some(t=>!t||t.length>80))throw new Error('Use nomes de turmas com até 80 caracteres.');
     accountCreationInFlight=true;const owner=currentUser.uid;let secondary,createdUser,createdFresh=false,profileSaved=false;
     try{
       secondary=await getSecondaryAuth();if(secondary.setPersistence&&firebase.auth.Auth?.Persistence?.NONE)await secondary.setPersistence(firebase.auth.Auth.Persistence.NONE);
@@ -6570,9 +6613,8 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
     event.preventDefault();const button=event.submitter||$('professorForm').querySelector('[type=submit]');
     const ok=await runManagementChange(button,'professorMsg','Cadastrando professor...',async()=>{
       const turmas=[...new Map([...$('turmasCheckboxes').querySelectorAll('input:checked')].map(i=>i.value).concat(splitTurmas($('cadProfTurmasExtras').value)).map(t=>[C.classKey(t),norm(t)])).values()];
-      if(!turmas.length)throw new Error('Selecione ou digite pelo menos uma turma.');
       await createManagedAccount({role:'professor',nome:norm($('cadProfNome').value),email:norm($('cadProfEmail').value),password:requireSamePassword('cadProfSenha','cadProfConfirmaSenha'),turmas});
-    });if(ok){$('professorForm').reset();setMsg('professorMsg','Professor cadastrado.','ok');}
+    });if(ok){$('professorForm').reset();$('cadastroProfessor').open=false;setMsg('professorMsg','Professor cadastrado. Use Associar turmas para definir ou alterar seus vínculos.','ok');}
   }
   async function cadastrarCoordenador(event){
     event.preventDefault();
@@ -6624,12 +6666,17 @@ ${formulas.length ? `Fórmulas/Dados importantes:\n${formulas.map(t=>`- ${t}`).j
   }
   function clearManagedSession(){
     sessionProfileRef?.off();sessionProfileRef=null;turmaRegistry={};allProfessoresCache=[];coordenadoresCache=[];editingClassKey=removingClassKey=editingProfessorId=null;
+    associationState={teacherId:'',baseline:[],dirty:false,busy:false};$('associacaoForm')?.reset();$('associacaoTurmas')?.replaceChildren();if($('associacaoProfessor'))$('associacaoProfessor').innerHTML='<option value="">Selecione um professor</option>';if($('salvarAssociacao'))$('salvarAssociacao').disabled=true;if($('cadastroProfessor'))$('cadastroProfessor').open=false;setMsg('associacaoMsg','');if($('associacaoResumo'))$('associacaoResumo').textContent='';window.MaximusManagement?.resetView();
     ['coordenadorDialog','editarTurmaDialog','removerTurmaDialog','editarProfessorDialog'].forEach(id=>$(id)?.close());
     ['turmaForm','coordenadorForm','editarTurmaForm','removerTurmaForm','editarProfessorForm'].forEach(id=>$(id)?.reset());
     ['turmasTabela','coordenadoresTabela','editarProfTurmas'].forEach(id=>$(id)?.replaceChildren());
     ['turmaMsg','coordenadorMsg','cadCoordMsg','editarTurmaMsg','removerTurmaMsg','editarProfMsg'].forEach(id=>setMsg(id,''));
   }
   function setupManagement(){
+    $('associacaoForm')?.addEventListener('submit',salvarAssociacao);
+    $('associacaoProfessor')?.addEventListener('change',()=>{setMsg('associacaoMsg','');renderAssociacoes($('associacaoProfessor').value,true);});
+    $('associacaoTurmas')?.addEventListener('change',()=>{associationState.dirty=true;setMsg('associacaoMsg','');const count=$('associacaoTurmas').querySelectorAll('input:checked').length;$('associacaoResumo').textContent=count?`${count} turma(s) selecionada(s). O professor terá acesso apenas às turmas marcadas.`:'Sem turmas selecionadas. O professor pode entrar, mas não terá acesso aos alunos.';});
+    $('recarregarAssociacao')?.addEventListener('click',()=>{setMsg('associacaoMsg','');renderAssociacoes($('associacaoProfessor').value,true);});
     $('turmaForm')?.addEventListener('submit',addClass);$('editarTurmaForm')?.addEventListener('submit',renameClass);$('removerTurmaForm')?.addEventListener('submit',removeClass);$('editarProfessorForm')?.addEventListener('submit',editProfessor);
     $('coordenadorForm')?.addEventListener('submit',cadastrarCoordenador);['novoCoordenador','novoCoordenadorRapido'].forEach(id=>$(id)?.addEventListener('click',()=>{$('coordenadorForm').reset();setMsg('cadCoordMsg','');$('coordenadorDialog').showModal();}));
     $('profStatusFilter')?.addEventListener('change',renderProfessoresTabela);
