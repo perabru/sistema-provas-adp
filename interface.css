@@ -86,6 +86,7 @@
   .login-card .small-link{color:#6b527c;font-size:13px;text-decoration:underline;text-underline-offset:4px;text-decoration-color:#c6b9d1}
   .login-card .btn.primary{min-height:50px}.login-card .eyebrow{font-size:10px;letter-spacing:.15em;color:#776b84}
   .install-card{border:1px solid #ece6f3;background:#faf8fd;border-radius:12px;padding:16px;gap:12px}.install-card strong{font-size:13px;font-weight:600;color:#554363}.install-card p{font-size:12px;line-height:1.6}
+  .login-card .install-card .btn{width:100%;flex-basis:100%}.login-card>[data-open-summary]{margin-top:12px}
   .install-card .btn{background:#fff;color:#655073;border-color:#dfd4e8;font-weight:500;min-height:44px;font-size:12px}
   .workflow-steps{background:#fff;border:1px solid var(--line);border-radius:14px;gap:8px}
   .workflow-steps>a{background:#f6f3fa;color:#665374;font-weight:550;border-radius:8px}

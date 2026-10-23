@@ -1,13 +1,13 @@
 /* Cache público do aplicativo. Não armazena respostas do Firebase nem dados dos alunos. */
 'use strict';
-const VERSION='interface-elegante-20261023-v3';
+const VERSION='interface-elegante-20261023-v4';
 const BASE=new URL('./',self.location.href);
 const PREFIX='maximus-shell-'+BASE.pathname+'-';
 const CACHE=PREFIX+VERSION;
 const SHELL=[
-  './index.html','./interface.css?v=20261023-elegante3','./styles.css?v=20261023-elegante3','./mobile.css?v=20261023-elegante3',
-  './gestao.js?v=20261023-elegante3','./planilhas.js?v=20261023-elegante3','./conta.js?v=20261023-elegante3','./pedagogia.js?v=20261023-elegante3','./app.js?v=20261023-elegante3','./resumo.js?v=20261023-elegante3',
-  './mobile.js?v=20261023-elegante3','./pwa.js?v=20261023-elegante3',
+  './index.html','./interface.css?v=20261023-elegante4','./styles.css?v=20261023-elegante4','./mobile.css?v=20261023-elegante4',
+  './gestao.js?v=20261023-elegante4','./planilhas.js?v=20261023-elegante4','./conta.js?v=20261023-elegante4','./pedagogia.js?v=20261023-elegante4','./app.js?v=20261023-elegante4','./resumo.js?v=20261023-elegante4',
+  './mobile.js?v=20261023-elegante4','./pwa.js?v=20261023-elegante4',
   './manifest.webmanifest','./icons/apple-touch-icon.png','./icons/icon-192.png','./icons/icon-512.png','./icons/maskable-512.png'
 ].map(path=>new URL(path,BASE).href);
 const ALLOWED=new Set(SHELL);
