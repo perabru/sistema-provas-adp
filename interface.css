@@ -1,0 +1,122 @@
+/* Aparência da aplicação. Os modelos de prova e a impressão mantêm seus estilos. */
+@media screen{
+  :root{--blue:#3d326d;--blue2:#51447f;--orange:#c8823e;--orange2:#d49b65;--ink:#292635;--muted:#6c6978;--line:#e8e5ee;--surface:#fff;--canvas:#f7f7fa;--shadow:0 8px 30px #29213e06}
+  body{background:var(--canvas);color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+  .app .content{padding-left:18px!important;padding-right:18px!important}
+  .topbar{padding-bottom:22px!important;margin-bottom:24px!important;border-color:var(--line)!important}
+  .topbar h2{color:#30283e;font-size:29px!important;font-weight:650;letter-spacing:-.045em;line-height:1.16;margin-bottom:10px}
+  .topbar p{font-size:13px;line-height:1.65}
+  .workspace-eyebrow{display:block;margin:0 0 12px;font-size:10px;letter-spacing:.17em;font-weight:650;color:#74697e;line-height:1.5}
+  .panel{border-color:var(--line);border-radius:16px;background:var(--surface);padding:22px;box-shadow:var(--shadow)}
+  .panel>h3,.panel .section-head h3,.pedagogical-suggestions>h3{color:#373043;font-weight:620;font-size:19px;letter-spacing:-.025em;line-height:1.4}
+  .section-head{gap:20px;margin-bottom:16px}.section-head p{line-height:1.7;font-size:14px;margin:6px 0 0}
+  .panel>h4,.panel .section-head h4{font-size:15px;font-weight:600;color:var(--ink);letter-spacing:-.015em}
+  .form-grid{gap:20px}label,.form-grid label{font-size:13px;font-weight:550;letter-spacing:0;color:#474052}
+  .form-grid input:not([type=checkbox]):not([type=radio]),.form-grid select,.form-grid textarea,.class-create input,.search{border-radius:10px;border-color:#ddd9e5;background:#fefeff;box-shadow:0 1px 2px #24193603;color:var(--ink);font-weight:400}
+  .form-grid input:hover,.form-grid select:hover,.form-grid textarea:hover,.class-create input:hover{border-color:#bbb3c9}
+  .form-grid input:focus,.form-grid select:focus,.form-grid textarea:focus,.class-create input:focus,.search:focus{border-color:#796995;box-shadow:0 0 0 3px #6c558e14}
+  input::placeholder,textarea::placeholder{color:#736b7e;opacity:1}
+  .btn{border:1px solid transparent;border-radius:10px;font-weight:600;letter-spacing:-.005em;box-shadow:none!important;transition:background .18s ease,border-color .18s ease,color .18s ease!important}
+  .btn.primary{background:var(--blue)!important;color:#fff!important;border-color:var(--blue)}
+  .btn.primary:hover{background:#302555!important;border-color:#302555}
+  .btn.secondary{background:#f3ece3!important;color:#71502c!important;border-color:#e9dccd}
+  .btn.secondary:hover{background:#ece0d2!important;border-color:#d3bb9e}
+  .btn.light{background:#fff;color:#574871;border-color:#e2dce9}.btn.light:hover{background:#f4f1f8;border-color:#c9bfd8}
+  .btn.danger{background:#fff6f5;color:#973b35;border-color:#f0dcd8}.btn.danger:hover{background:#fbe8e5}
+  #adminBack{border:0;background:transparent;padding-left:0;color:var(--muted);font-size:13px;margin-bottom:14px;min-height:36px}
+  button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid #b3753c;outline-offset:4px}
+  .app .sidebar{background:#2c243f!important;gap:16px;border-right:1px solid #392e50}
+  .side-brand{gap:12px;padding:0 7px 23px;margin-bottom:4px;border-bottom:1px solid #ffffff16}
+  .side-logo{width:43px;height:43px;flex-basis:43px;border:3px solid #fff;box-shadow:none}
+  .side-brand strong{font-size:16px;font-weight:620;letter-spacing:-.03em}.side-brand span{font-size:12px;color:#d1c8df;margin-top:5px}
+  .sidebar nav{gap:5px;padding:2px}
+  .sidebar nav a{display:flex;align-items:center;gap:10px;min-height:44px;padding:11px 14px;border-radius:10px;color:#e1dbe9;font-size:14px;font-weight:450;letter-spacing:0;transition:background .18s ease,color .18s ease}
+  .sidebar nav a.active,.sidebar nav a:hover{background:#ffffff11;color:#fff;box-shadow:none}
+  .sidebar nav a.active{background:#514462;box-shadow:inset 2px 0 #e0b78a;font-weight:550}
+  .admin-tools{margin-top:13px;padding-top:10px;border-top:1px solid #ffffff16}.admin-tools>summary{padding:10px 14px;color:#d2c9e0;font-size:12px;letter-spacing:.015em;font-weight:500}
+  .sidebar .btn.ghost,.sidebar .pwa-sidebar-install{background:transparent!important;border:1px solid #ffffff24!important;color:#e9e3f1!important;font-size:12px;font-weight:450;border-radius:9px;min-height:44px}
+  .sidebar .btn.ghost:hover,.sidebar .pwa-sidebar-install:hover{background:#ffffff0c!important;border-color:#ffffff4a!important}
+  .sync-state{display:flex;align-items:center;gap:8px;color:#d6cfdf;font-size:12px;padding:8px 14px;letter-spacing:0}
+  .sync-state::before{content:"";width:6px;height:6px;flex:none;border-radius:50%;background:#b8adc5}.sync-state[data-connected=true]::before{background:#94cfb1}.sync-state[data-connected=false]::before{background:#e3b378}
+  .mobile-appbar{background:#fffffffa;border-color:var(--line);backdrop-filter:blur(12px)}
+  .mobile-brand strong{font-weight:620;letter-spacing:-.03em;color:#393044}.mobile-brand small{font-size:10px;letter-spacing:.025em}
+  .mobile-brand img{border-radius:9px}.hamburger-btn{background:#3d326d!important;border-radius:11px!important}
+  .mobile-appbar .btn{background:transparent;border-color:var(--line);font-size:11px;min-height:44px}
+  .bottom-nav{border-color:#e7e3ed;background:#fffffffa;backdrop-filter:blur(12px);box-shadow:0 -4px 24px #29213e04;padding-top:7px}
+  .bottom-nav a,.bottom-nav button{font-size:10px;font-weight:500;letter-spacing:0;color:#6f687a;border-radius:11px;gap:5px}
+  .bottom-nav svg{stroke-width:1.6;width:20px;height:20px}.bottom-nav .active{background:#f0ecf6;color:var(--blue)}
+  .admin-start{border:0;background:transparent;box-shadow:none;padding:0!important;margin-top:8px}
+  .admin-start>h3{font-size:12px!important;letter-spacing:.1em;text-transform:uppercase;color:#716878;font-weight:600;margin:0 0 16px}
+  .admin-task-grid{gap:12px;margin:0 0 18px}
+  .admin-task-grid>button{position:relative;display:grid;grid-template-columns:42px minmax(0,1fr);align-items:center;column-gap:16px;row-gap:5px;padding:22px 36px 22px 18px;border:1px solid #e4dfeb;border-radius:14px;background:#fff;box-shadow:0 3px 12px #29213e03;transition:border-color .18s ease,box-shadow .18s ease,background .18s ease}
+  .admin-task-grid>button::after{content:"↗";position:absolute;top:19px;right:15px;color:#91859e;font-size:17px;font-weight:400}
+  .admin-task-grid>button:hover,.admin-task-grid>button:focus-visible{background:#fefcff;border-color:#bdb0cd;box-shadow:0 6px 22px #38234d08}
+  .admin-task-grid .task-icon{grid-row:span 2;display:grid;place-items:center;width:42px;height:46px;border-radius:12px;background:#f1edf7;color:#594576}
+  .task-icon svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  .admin-task-grid strong{font-size:16px;font-weight:600;letter-spacing:-.025em;color:#3b3249;padding-right:6px}
+  .admin-task-grid>button>span:last-child{grid-column:2;font-size:12px;line-height:1.65;letter-spacing:0;color:#716a7a}
+  .admin-start .actions{gap:10px}.admin-start .actions>.btn{background:transparent;border-color:#dfd9e7;font-size:13px}
+  #adminStats{padding:5px 0;background:#fff;border:1px solid var(--line);border-radius:14px;gap:0;box-shadow:none}
+  #adminAppView #adminStats .stat{padding:16px 18px;border:0;border-left:0!important;border-right:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none}
+  #adminAppView #adminStats .stat:nth-child(3){border-right:0}.stat span{font-size:11px;color:#766f80;letter-spacing:.01em;font-weight:450}
+  #adminAppView #adminStats .stat strong{font-size:27px;font-weight:550;color:#44374f;letter-spacing:-.035em;line-height:1.35;margin-top:5px}
+  .admin-form-detail{border-radius:12px;border-color:var(--line);padding:18px;background:#fdfcfe}
+  .admin-form-detail>summary,.optional-classes>summary{font-weight:550;color:#51425f;letter-spacing:-.01em}
+  .admin-form-detail[open]{background:#fff;border-color:#d8cfE2}.admin-form-detail[open]>summary{padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:20px}
+  .class-choices{border-radius:12px;border-color:var(--line);padding:18px}.class-choices legend{font-size:13px;font-weight:550;padding:0 8px;color:#544960}
+  #associacaoTurmas label{border-radius:10px;border-color:var(--line);font-weight:450;min-height:50px;background:#fff}
+  #associacaoTurmas label:has(input:checked){background:#f5f1fa;border-color:#b7a6c9}
+  .class-import-card{background:#faf8fc;border-color:#ebe5f1;border-radius:12px;box-shadow:none}
+  .table-wrap{border-radius:12px;border:1px solid var(--line)}
+  .app .table-wrap th{background:#f8f6fb;color:#766a84;font-size:11px;font-weight:600;letter-spacing:.045em;padding:14px 16px;border-color:var(--line)}
+  .app .table-wrap td{padding:16px;vertical-align:middle;border-color:#eeeaf2;color:#4e4658;font-size:13px;font-weight:400}
+  .app .table-wrap tbody tr:hover{background:#fcfaff}.table-wrap .btn{font-size:12px;border-radius:8px;min-height:44px;padding:8px 12px}
+  .report{border-radius:10px;background:#f9f7fc;border-color:#e8e0f0;color:#655873;font-size:13px;line-height:1.7}
+  .message{font-size:13px;line-height:1.7}.message.ok{color:#30684e}.message.error{color:#9d3e3a}
+  .badge,.chips span,.user-status{border-radius:7px;background:#f0edf6;color:#645277;font-weight:500}
+  .management-dialog,.summary-dialog,.import-wizard,.modal-card,.install-guide{border:1px solid var(--line);border-radius:20px;box-shadow:0 24px 80px #1f15272b;color:var(--ink)}
+  dialog::backdrop{background:#231c35a8;backdrop-filter:blur(3px)}
+  .dialog-head,.wizard-top{border-color:var(--line);padding-bottom:18px;margin-bottom:24px}.dialog-head h2,.wizard-top h2,.summary-dialog h2{font-weight:620;letter-spacing:-.035em;color:#342b43}
+  .login-shell{background:#f7f7fa!important;padding:28px 18px!important}
+  .login-card,.login-card.wide{border:1px solid #e3ddea;border-top:1px solid #e3ddea;border-radius:22px;padding:32px 28px!important;box-shadow:0 16px 50px #38224b08;backdrop-filter:none}
+  .login-logo{width:64px;height:64px;margin-bottom:24px;border-radius:14px;box-shadow:0 0 0 1px #eee9f1}
+  .login-eyebrow{display:block;margin:0 0 10px}
+  .login-card h1{font-family:inherit;font-size:29px;font-weight:620;letter-spacing:-.045em;line-height:1.15;color:#3a2f4b;margin-bottom:12px}
+  .login-card .security-note{background:none;border:0;border-radius:0;padding:0;box-shadow:none;font-weight:400;font-size:13px;color:var(--muted);line-height:1.8;margin-bottom:26px}
+  .login-card .small-link{color:#6b527c;font-size:13px;text-decoration:underline;text-underline-offset:4px;text-decoration-color:#c6b9d1}
+  .login-card .btn.primary{min-height:50px}.login-card .eyebrow{font-size:10px;letter-spacing:.15em;color:#776b84}
+  .install-card{border:1px solid #ece6f3;background:#faf8fd;border-radius:12px;padding:16px;gap:12px}.install-card strong{font-size:13px;font-weight:600;color:#554363}.install-card p{font-size:12px;line-height:1.6}
+  .install-card .btn{background:#fff;color:#655073;border-color:#dfd4e8;font-weight:500;min-height:44px;font-size:12px}
+  .workflow-steps{background:#fff;border:1px solid var(--line);border-radius:14px;gap:8px}
+  .workflow-steps>a{background:#f6f3fa;color:#665374;font-weight:550;border-radius:8px}
+  .card-mini{border-radius:12px;border-color:var(--line);background:#fff}.card-mini.active{background:#faf7fd;border-color:#d4c7e1}
+  .card-mini p{font-size:13px;color:#6c6177;line-height:1.75}.radio-row label{border-radius:10px;background:#fbfafd;border-color:var(--line)}
+  .student-card,.document-import-panel,.document-drop-zone{border-radius:12px!important;border-color:var(--line)!important;background:#faf9fc!important}
+  .word-toolbar{background:#faf8fd;border-color:var(--line);border-radius:12px 12px 0 0}.word-toolbar button{background:#fff;border-color:#e8e1ef;color:#665377;border-radius:7px}
+  .word-editor{border-color:#ddd4e7;border-radius:0 0 12px 12px}
+  .preview-toolbar .badge{background:#eee8f5;color:#645375}.paper-preview{background:#ebe8ef}
+  .checks-box::-webkit-scrollbar,.sidebar::-webkit-scrollbar{width:5px}.checks-box::-webkit-scrollbar-thumb{background:#d9d0e2;border-radius:8px}
+}
+@media screen and (min-width:600px){
+  .app .content{padding-left:28px!important;padding-right:28px!important}.panel{padding:28px}.topbar h2{font-size:34px!important}.workspace-eyebrow{font-size:11px}.admin-task-grid>button{padding:25px 38px 25px 22px}
+}
+@media screen and (min-width:1024px){
+  .app{grid-template-columns:252px minmax(0,1fr)!important}.app .sidebar{width:252px!important;padding:34px 20px 24px!important}
+  .app .content{padding:42px!important;max-width:1450px!important;margin-inline:auto!important}
+  .topbar{padding-bottom:28px!important;margin-bottom:30px!important}.topbar h2{font-size:38px!important}.panel{margin-bottom:22px}.sidebar .sync-state{margin-top:auto}
+  .admin-task-grid{gap:18px}.admin-task-grid>button{display:flex;align-items:flex-start;gap:12px;min-height:206px;padding:26px}.admin-task-grid .task-icon{margin-bottom:8px}.admin-task-grid strong{font-size:17px}.admin-task-grid>button>span:last-child{font-size:13px}.admin-task-grid>button::after{right:22px;top:22px}
+  .admin-start .actions>.btn{flex-basis:auto}.offline-notice{left:252px}.login-card,.login-card.wide{padding:40px!important}
+  .form-grid{gap:22px}.panel>h3,.panel .section-head h3,.pedagogical-suggestions>h3{font-size:21px}.section-head{margin-bottom:22px}.pwa-update{border-radius:14px}
+}
+@media screen and (max-width:640px){
+  #adminAppView .management-table{border:0}#adminAppView .management-table tr{border-radius:12px;margin:10px 0;padding:16px;background:#fff}
+  #adminAppView .management-table td{padding:7px 0}#adminAppView .management-table td[data-label]::before{font-size:10px;font-weight:500;letter-spacing:.045em;color:#80718b}
+  #adminAppView .table-wrap:has(.management-table){border:0;overflow:visible}.admin-form-detail{padding:16px}
+  .admin-start .actions>.btn{flex:1 1 100%}#adminAppView #adminStats .stat{padding:15px 12px}#adminAppView #adminStats .stat strong{font-size:25px}
+}
+@media screen and (max-width:360px){
+  .app .content{padding-left:14px!important;padding-right:14px!important}.panel{padding:18px}.admin-task-grid>button{padding:18px 27px 18px 14px;column-gap:12px;grid-template-columns:36px minmax(0,1fr)}.admin-task-grid .task-icon{width:36px;height:42px}.admin-task-grid strong{font-size:15px}.admin-task-grid>button>span:last-child{font-size:11px}.login-card,.login-card.wide{padding:26px 22px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .btn,.admin-task-grid>button,.sidebar nav a{transition:none!important}
+}

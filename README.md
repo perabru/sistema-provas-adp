@@ -118,9 +118,13 @@ Os vínculos são conferidos novamente no Firebase antes de salvar. Professores 
 - Não há envio do conteúdo a serviços de IA. Contas e registros salvos continuam usando o Firebase original.
 - Não inclua nomes de alunos, diagnósticos, planilhas reais, senhas ou backups no repositório público. O QR usa apenas metadados de emissão, sem diagnóstico ou nome do aluno.
 
+## Aparência
+
+A camada `interface.css` reúne o acabamento visual das telas: tipografia nativa, roxo institucional sóbrio, ícones lineares e componentes com espaçamentos consistentes. As regras são limitadas à tela e não mudam os estilos de impressão dos modelos. O arquivo também faz parte do cache do PWA.
+
 ## Manutenção e testes
 
-Sem npm ou compilação para publicar. Mantenha juntos `index.html`, `styles.css`, `mobile.css`, `app.js`, `conta.js`, `planilhas.js`, `gestao.js`, `pedagogia.js`, `resumo.js`, `mobile.js`, `pwa.js`, `sw.js`, `manifest.webmanifest` e a pasta `icons/`. As bibliotecas de documentos e os modelos originais estão incorporados em `app.js`, com seus avisos de licença. Ao publicar outra versão, atualize os identificadores dos arquivos no HTML e no cache de `sw.js`, além de `VERSION`.
+Sem npm ou compilação para publicar. Mantenha juntos `index.html`, `styles.css`, `mobile.css`, `interface.css`, `app.js`, `conta.js`, `planilhas.js`, `gestao.js`, `pedagogia.js`, `resumo.js`, `mobile.js`, `pwa.js`, `sw.js`, `manifest.webmanifest` e a pasta `icons/`. As bibliotecas de documentos e os modelos originais estão incorporados em `app.js`, com seus avisos de licença. Ao publicar outra versão, atualize os identificadores dos arquivos no HTML e no cache de `sw.js`, além de `VERSION`.
 
 ```sh
 node --check app.js
