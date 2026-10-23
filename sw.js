@@ -1,20 +1,21 @@
 /* Cache público do aplicativo. Não armazena respostas do Firebase nem dados dos alunos. */
 'use strict';
-const VERSION='interface-elegante-20261023-v4';
+const VERSION='interface-elegante-20261023-v5';
 const BASE=new URL('./',self.location.href);
 const PREFIX='maximus-shell-'+BASE.pathname+'-';
 const CACHE=PREFIX+VERSION;
 const SHELL=[
-  './index.html','./interface.css?v=20261023-elegante4','./styles.css?v=20261023-elegante4','./mobile.css?v=20261023-elegante4',
-  './gestao.js?v=20261023-elegante4','./planilhas.js?v=20261023-elegante4','./conta.js?v=20261023-elegante4','./pedagogia.js?v=20261023-elegante4','./app.js?v=20261023-elegante4','./resumo.js?v=20261023-elegante4',
-  './mobile.js?v=20261023-elegante4','./pwa.js?v=20261023-elegante4',
+  './index.html','./interface.css?v=20261023-elegante5','./styles.css?v=20261023-elegante5','./mobile.css?v=20261023-elegante5',
+  './gestao.js?v=20261023-elegante5','./planilhas.js?v=20261023-elegante5','./conta.js?v=20261023-elegante5','./pedagogia.js?v=20261023-elegante5','./app.js?v=20261023-elegante5','./resumo.js?v=20261023-elegante5',
+  './mobile.js?v=20261023-elegante5','./pwa.js?v=20261023-elegante5',
   './manifest.webmanifest','./icons/apple-touch-icon.png','./icons/icon-192.png','./icons/icon-512.png','./icons/maskable-512.png'
 ].map(path=>new URL(path,BASE).href);
 const ALLOWED=new Set(SHELL);
 const INDEX=new URL('./index.html',BASE).href;
 
 self.addEventListener('install',event=>{
-  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)));
+  // Busca a versão publicada, mesmo se o cache HTTP ainda tiver uma página anterior.
+  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL.map(url=>new Request(url,{cache:'reload'})))));
   // Uma versão nova aguarda o usuário terminar a edição antes de assumir o controle.
 });
 self.addEventListener('activate',event=>{

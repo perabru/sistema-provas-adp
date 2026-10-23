@@ -4,15 +4,21 @@ const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=path.join(__dirname,'..');
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 
-function worker(){
-  const events={},storage=new Map(),network=[],state={fail:false,skipped:0,claimed:0};
+function worker({staleHttpCache=false}={}){
+  const events={},storage=new Map(),network=[],installRequests=[],state={fail:false,skipped:0,claimed:0};
   const key=request=>typeof request==='string'?request:request.url;
-  const caches={async open(name){if(!storage.has(name))storage.set(name,new Map());const data=storage.get(name);return {async addAll(urls){for(const url of urls)data.set(url,{cached:url});},async match(request){return data.get(key(request));},async put(request,response){data.set(key(request),response);}};},async keys(){return [...storage.keys()];},async delete(name){return storage.delete(name);}};
-  const context={URL,Response,Set,caches,fetch:async request=>{network.push(key(request));if(state.fail)throw Error('offline');return {ok:true,type:'basic',clone(){return this;}};},self:{location:{href:'https://perabru.github.io/sistema-provas-adp/sw.js'},addEventListener:(type,handler)=>events[type]=handler,clients:{claim:async()=>state.claimed++},skipWaiting:async()=>state.skipped++}};
+  const responseFor=request=>{
+    if(state.fail)throw Error('offline');
+    const url=key(request),stale=staleHttpCache&&request.cache!=='reload';
+    const body=new URL(url).pathname.endsWith('/index.html')?read('index.html').replaceAll('20261023-elegante5',stale?'20261023-elegante4':'20261023-elegante5'):(stale?'stale:':'current:')+url;
+    return {cached:url,ok:true,type:'basic',async text(){return body;},clone(){return this;}};
+  };
+  const caches={async open(name){if(!storage.has(name))storage.set(name,new Map());const data=storage.get(name);return {async addAll(requests){const entries=await Promise.all(requests.map(async request=>{installRequests.push(request);return [key(request),responseFor(request)];}));for(const [url,response] of entries)data.set(url,response);},async match(request){return data.get(key(request));},async put(request,response){data.set(key(request),response);}};},async keys(){return [...storage.keys()];},async delete(name){return storage.delete(name);}};
+  const context={URL,Request,Response,Set,caches,fetch:async request=>{network.push(key(request));return responseFor(request);},self:{location:{href:'https://perabru.github.io/sistema-provas-adp/sw.js'},addEventListener:(type,handler)=>events[type]=handler,clients:{claim:async()=>state.claimed++},skipWaiting:async()=>state.skipped++}};
   vm.runInNewContext(read('sw.js'),context);
   async function lifecycle(type,data={}){let promise;events[type]({...data,waitUntil:p=>promise=p});await promise;}
   async function request(url,extra={}){let response;events.fetch({request:{url,method:'GET',mode:'cors',...extra},respondWith:p=>response=p});return await response;}
-  return {events,storage,network,state,lifecycle,request};
+  return {events,storage,network,installRequests,state,lifecycle,request};
 }
 test('manifest instala no subdiretório correto, com ícones Android válidos',()=>{
   const m=JSON.parse(read('manifest.webmanifest'));
@@ -30,8 +36,20 @@ test('prepara os arquivos públicos e mantém o resumo disponível offline',asyn
   w.state.fail=true;
   const page=await w.request('https://perabru.github.io/sistema-provas-adp/?source=pwa',{mode:'navigate'});
   assert.equal(page.cached,'https://perabru.github.io/sistema-provas-adp/index.html');
-  const summary=await w.request('https://perabru.github.io/sistema-provas-adp/resumo.js?v=20261023-elegante4');
+  const summary=await w.request('https://perabru.github.io/sistema-provas-adp/resumo.js?v=20261023-elegante5');
   assert.match(summary.cached,/resumo\.js/);
+});
+test('nova instalação ignora HTML antigo no cache HTTP e mantém a versão atual offline',async()=>{
+  const w=worker({staleHttpCache:true});await w.lifecycle('install');await w.lifecycle('activate');
+  assert.ok(w.installRequests.length>0);
+  for(const request of w.installRequests){assert.ok(request instanceof Request);assert.equal(request.cache,'reload',request.url);}
+  w.state.fail=true;
+  const page=await w.request('https://perabru.github.io/sistema-provas-adp/?source=pwa',{mode:'navigate'});
+  const html=await page.text();assert.equal(html,read('index.html'));assert.match(html,/20261023-elegante5/);
+  const resources=[...html.matchAll(/(?:src|href)="([^" ]+\?v=[^" ]+)"/g)].map(match=>new URL(match[1],'https://perabru.github.io/sistema-provas-adp/').href);
+  assert.ok(resources.length>0);
+  for(const resource of resources){const asset=await w.request(resource);assert.equal(asset?.cached,resource);assert.equal(await asset.text(),'current:'+resource);}
+  assert.equal(w.network.length,0);
 });
 test('uma versão pendente não mistura HTML novo com scripts antigos',async()=>{
   const w=worker();await w.lifecycle('install');
